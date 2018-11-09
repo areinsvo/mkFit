@@ -117,6 +117,11 @@ public:
   void convertFromCCSToCartesian();
   SMatrix66 jacobianCCSToCartesian(float invpt,float phi,float theta) const;
   SMatrix66 jacobianCartesianToCCS(float px,float py,float pz) const;
+    
+    void convertFromCartesianToCanonical();
+    void convertFromCanonicalToCartesian();
+    SMatrix66 jacobianCanonicalToCartesian(float invpt,float phi,float theta) const;
+    SMatrix66 jacobianCartesianToCanonical(float px,float py,float pz) const;
 };
 
 
