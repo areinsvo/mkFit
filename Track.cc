@@ -41,6 +41,54 @@ void TrackState::convertFromCCSToCartesian() {
   errors = ROOT::Math::Similarity(jac,errors);
 }
 
+void TrackState::convertFromCCSTo6BD(){
+  //assume we are currently in CCS and want to move to 6BD
+  const float invpt = parameters.At(3);
+  const float theta = parameters.At(5);
+  const float pz = 1/(std::tan(theta)*invpt);
+  parameters.At(5) = pz;
+
+  SMatrix66 jac = jacobianCCSTo6BD(invpt, theta);
+  printf("\n\nCCS errors:\n");
+  dumpMatrix(errors);
+  errors = ROOT::Math::Similarity(jac,errors);
+  printf("\n6BD errors:\n");
+  dumpMatrix(errors);
+  printf("\n\n");
+}
+
+void TrackState::convertFrom6BDToCCS(){
+  //assume we are currently in 6BD and want to move to CCS
+  const float invpt = parameters.At(3);
+  const float pz = parameters.At(5);
+  const float theta = std::atan(1/(pz*invpt));
+  parameters.At(5) = theta;
+
+  SMatrix66 jac = jacobian6BDToCCS(invpt, pz);
+  printf("\n\n6BD errors:\n");
+  dumpMatrix(errors);
+  errors = ROOT::Math::Similarity(jac,errors);
+  printf("\nCCS errors:\n");
+  dumpMatrix(errors);
+  printf("\n\n");
+
+}
+SMatrix66 TrackState::jacobianCCSTo6BD(float invpt, float theta) const{
+  SMatrix66 jac = ROOT::Math::SMatrixIdentity();
+  jac(5,5) = -1/(invpt*std::sin(theta)*std::sin(theta)); //derivative of pz wrt theta
+  jac(5,3) = -1/(invpt*invpt*std::tan(theta));//derivative of pz wrt invpt
+  return jac;
+}
+
+SMatrix66 TrackState::jacobian6BDToCCS(float invpt, float pz) const{
+  SMatrix66 jac = ROOT::Math::SMatrixIdentity();
+  jac(5,3) = -pz/( (pz*pz*invpt*invpt)+1); //derivative of theta wrt invpt
+  jac(5,5) = -invpt/( (pz*pz*invpt*invpt)+1); //derivative of theta wrt pz
+  const float theta = std::atan(1/(pz*invpt));
+  return jac;
+}
+
+
 SMatrix66 TrackState::jacobianCCSToCartesian(float invpt,float phi,float theta) const {
   //arguments are passed so that the function can be used both starting from ccs and from cartesian
   SMatrix66 jac = ROOT::Math::SMatrixIdentity();
@@ -72,137 +120,6 @@ SMatrix66 TrackState::jacobianCartesianToCCS(float px,float py,float pz) const {
   jac(5,5) = -pt/p2;
   return jac;
 }
-
-
-void TrackState::convertFromCartesianToCanonical() {
-    //assume we are currently in cartesian coordinates and want to move to canonical
-    const float x = parameters.At(0);
-    const float y = parameters.At(1);
-    const float z = parameters.At(2);
-    const float px = parameters.At(3);
-    const float py = parameters.At(4);
-    const float pz = parameters.At(5);
-    const float pt = std::sqrt(px*px+py*py);
-    
-    const float a = 0.3;
-    const float T = std::sqrt( px*px+py*py - 2*a*(x*py-y*px)+ a*a*(x*x+y*y) )
-    
-    const float lambda = pz/pt;
-    const float radius = pt/a;
-    const float phi0 = arccos((px+a*y) / T);
-    const float D = (1/a)*(T - pt);
-    
-    const float z0 = z - (pz/a)*std::asin( (pt*pt-a*(x*px+y*py)) / (T*pt)) ;
-    
-    parameters.At(0) = radius;
-    parameters.At(1) = phi0;
-    parameters.At(2) = D;
-    parameters.At(3) = lambda;
-    parameters.At(4) = z0;
-    
-    SMatrix66 jac = jacobianCartesianToCanonical(px,py,pz);
-    //errors = ROOT::Math::Similarity(jac,errors);
-}
-    
-/*void TrackState::convertFromCanonicalToCartesian(float s_perp) {
-    //assume we are currently in canonical coordinates and want to move to cartesian
-    const float radius = parameters.At(0);
-    const float phi0 = parameters.At(1);
-    const float D = parameters.At(2);
-    const float lambda = parameters.At(3);
-    const float z0 = parameters.At(4);
-    
-    const float a = constants;
-    const float pt = a * radius;
-    const float cosS = std::cos(s_perp/radius);
-    const float sinS = std::sin(s_perp/radius);
-    
-    const float p0x = pt * std::cos(phi0);
-    const float p0y = pt * std::sin(phi0);
-    const float x0 = -D * std::sin(phi0);
-    const float y0 =  D * std::cos(phi0);
-    
-    x = x0 + (p0x * sinS / a) - (p0y/a) * (1-cosS)
-    y = y0 + (p0y * sinS / a) + (p0x/a) * (1-cosS)
-    z = z0 + lambda*s_perp;
-    px = p0x*cosS - p0y*sinS;
-    py = p0y*cosS + p0x*sinS;
-    pz = pt * lambda;
-    
-    parameters.At(0) = x;
-    parameters.At(1) = y;
-    parameters.At(2) = z;
-    parameters.At(3) = px;
-    parameters.At(4) = py;
-    parameters.At(5) = pz;
-        
-    SMatrix66 jac = jacobianCanonicalToCartesian(px,py,pz);
-    errors = ROOT::Math::Similarity(jac,errors);
-}*/
-    
-    void TrackState::convertFromCanonicalToCartesian(float s_perp) {
-        //assume we are currently in canonical coordinates and want to move to cartesian
-        const float radius = parameters.At(0);
-        const float phi0 = parameters.At(1);
-        const float D = parameters.At(2);
-        const float lambda = parameters.At(3);
-        const float z0 = parameters.At(4);
-        
-        const float a = constants;
-        const float pt = a * radius;
-        const float cosS = std::cos(s_perp/radius);
-        const float sinS = std::sin(s_perp/radius);
-        
-        const float cosP = std::cos(phi0);
-        const float sinP = std::sin(phi0);
-        
-        x = x0 + (radius * cosP * sinS) - (radius * sinP) * (1-cosS)
-        y = y0 + (radius * sinP * sinS) + (radius * cosP) * (1-cosS)
-        z = z0 + lambda*s_perp;
-        px = pt*cosP*cosS - pt*sinP*sinS;
-        py = pt*sinP*cosS + pt*cosP*sinS;
-        pz = pt * lambda;
-        
-        parameters.At(0) = x;
-        parameters.At(1) = y;
-        parameters.At(2) = z;
-        parameters.At(3) = px;
-        parameters.At(4) = py;
-        parameters.At(5) = pz;
-        
-        SMatrix66 jac = jacobianCanonicalToCartesian(px,py,pz);
-   //     errors = ROOT::Math::Similarity(jac,errors);
-    }
-    
-    SMatrix66 TrackState::jacobianCartesianToCanonical(float px,float py,float pz) const {
-        //arguments are passed so that the function can be used both starting from ccs and from cartesian
-        SMatrix66 jac = ROOT::Math::SMatrixIdentity();
-        const float pt = std::sqrt(px*px+py*py);
-        const float p2 = px*px+py*py+pz*pz;
-        jac(3,3) = -px/(pt*pt*pt);
-        jac(3,4) = -py/(pt*pt*pt);
-        jac(4,3) = -py/(pt*pt);
-        jac(4,4) =  px/(pt*pt);
-        jac(5,3) =  px*pz/(pt*p2);
-        jac(5,4) =  py*pz/(pt*p2);
-        jac(5,5) = -pt/p2;
-        return jac;
-    }
-    
-    SMatrix66 TrackState::jacobianCanonicalToCartesian(float px,float py,float pz) const {
-        //arguments are passed so that the function can be used both starting from ccs and from cartesian
-        SMatrix66 jac = ROOT::Math::SMatrixIdentity();
-        const float pt = std::sqrt(px*px+py*py);
-        const float p2 = px*px+py*py+pz*pz;
-        jac(3,3) = -px/(pt*pt*pt);
-        jac(3,4) = -py/(pt*pt*pt);
-        jac(4,3) = -py/(pt*pt);
-        jac(4,4) =  px/(pt*pt);
-        jac(5,3) =  px*pz/(pt*p2);
-        jac(5,4) =  py*pz/(pt*p2);
-        jac(5,5) = -pt/p2;
-        return jac;
-    }
 
 
 //==============================================================================

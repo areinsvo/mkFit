@@ -763,11 +763,16 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
     printf("  %i with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d findable=%d\n",
            it, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label(), t.isFindable());
 
-    printf("CCS coordinates: x = %7.3f, y = %7.3f, z = %7.3f, 1/pt = %7.3f, phi = %7.3f, theta  = %7.3f,",parameters.At(0),parameters.At(1),parameters.At(2),parameters.At(3),parameters.At(4),parameters.At(5));
-    t.TrackState().convertCCSToCartesian();
-    printf("Canonical coordinates: radius = %7.3f, phi0 = %7.3f, D = %7.3f, lambda = %7.3f, z0 = %7.3f",parameters.At(0),parameters.At(1),parameters.At(2),parameters.At(3),parameters.At(4));
-    t.TrackState().convertCartesianToCCS();
-    printf("CCS coordinates: x = %7.3f, y = %7.3f, z = %7.3f, 1/pt = %7.3f, phi = %7.3f, theta  = %7.3f,",parameters.At(0),parameters.At(1),parameters.At(2),parameters.At(3),parameters.At(4),parameters.At(5));
+    TrackState ts = t.state();
+
+    //*****Start in CCS*******
+    printf("CCS coordinates: x = %7.3f, y = %7.3f, z = %7.3f, 1/pt = %7.3f, phi = %7.3f, theta  = %7.3f\n",ts.x(),ts.y(),ts.z(),ts.invpT(),ts.momPhi(),ts.theta() );
+    //Convert to 6BD
+    ts.convertFromCCSTo6BD();
+    printf("6BD parameters: x = %7.3f, y = %7.3f, z = %7.3f, 1/pt = %7.3f, phi = %7.3f, pz  = %7.3f\n",ts.x(),ts.y(),ts.z(),ts.invpT(),ts.momPhi(),ts.theta() );
+    //Convert back
+    ts.convertFrom6BDToCCS();
+    printf("CCS coordinates: x = %7.3f, y = %7.3f, z = %7.3f, 1/pt = %7.3f, phi = %7.3f, theta  = %7.3f\n",ts.x(),ts.y(),ts.z(),ts.invpT(),ts.momPhi(),ts.theta() );
       
     if (print_hits)
     {

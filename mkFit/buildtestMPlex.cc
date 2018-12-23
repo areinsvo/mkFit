@@ -298,7 +298,7 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
 
   builder.end_event();
 
-  // ev.print_tracks(ev.candidateTracks_, true);
+  ev.print_tracks(ev.candidateTracks_, true);
 
   return time;
 }
