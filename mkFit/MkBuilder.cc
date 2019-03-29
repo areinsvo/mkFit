@@ -1838,6 +1838,9 @@ void MkBuilder::FindTracksStandard()
         prev_layer = curr_layer;
         curr_layer = layer_plan_it->m_layer;
 
+	std::cout << "Processing curr_layer = " << curr_layer << ", prev_layer = " << prev_layer << ", end - begin  = " 
+		  << st_par.finding_end() - st_par.finding_begin() << ", end -current =  " << st_par.finding_end() - layer_plan_it << std::endl;
+
         dprintf("\n* Processing layer %d\n", curr_layer);
 
         const LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[curr_layer];
@@ -1898,6 +1901,25 @@ void MkBuilder::FindTracksStandard()
             tmp_cands[is].erase(tmp_cands[is].begin() + Config::maxCandsPerSeed,
                                 tmp_cands[is].end());
           }
+	  for(int it = 0; it < tmp_cands[is].size(); it++){
+	    if(tmp_cands[is][it].label() == 9){
+	      std::cout << "(" <<it+1 << "/" << tmp_cands[is].size()
+			<< ") Seed " << tmp_cands[is][it].label() << ", " << is << ": " 
+			<< tmp_cands[is][it].getCandScore() << "/" << mkfit::getScoreCand(tmp_cands[is][it]) 
+			<< " (" << tmp_cands[is][it].nMissingHits() << ", " 
+			<< tmp_cands[is][it].nFoundHits() << ", "
+			<< tmp_cands[is][it].chi2() << ", "
+			<< tmp_cands[is][it].getSeedTypeForRanking() << ", "
+			<< tmp_cands[is][it].pT() <<"), " 
+			<< "last hit index " << tmp_cands[is][it].getLastHitIdx() 
+			<< ", lyr " << tmp_cands[is][it].getLastHitLyr() << ": ";
+	      for (int ihit = 0; ihit < tmp_cands[is][it].nTotalHits(); ihit++)
+		{
+		  std::cout << tmp_cands[is][it].getHitIdx(ihit) <<", ";
+		}
+	      std::cout << " StartSeed " << is << std::endl;
+	    }
+	  }
           dprint("dump seed n " << is << " with output candidates=" << tmp_cands[is].size());
         }
 
@@ -1943,6 +1965,27 @@ void MkBuilder::FindTracksStandard()
         if (finalcands.size() == 0) continue;
         //std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
         std::sort(finalcands.begin(), finalcands.end(), sortCandByScore);
+	
+	for(int it = 0; it < finalcands.size(); it++){
+	  if(finalcands[it].label() == 9){
+	    std::cout << "FINAL!" << std::endl;
+	    std::cout << "(" <<it+1 << "/" << finalcands.size()
+		      << ") Seed " << finalcands[it].label() << ": "
+		      << finalcands[it].getCandScore() << "/" << mkfit::getScoreCand(finalcands[it])
+		      << " (" << finalcands[it].nMissingHits() << ", "
+		      << finalcands[it].nFoundHits() << ", "
+		      << finalcands[it].chi2() << ", "
+		      << finalcands[it].getSeedTypeForRanking() << ", "
+		      << finalcands[it].pT() <<"), "
+		      << "last hit index " << finalcands[it].getLastHitIdx()
+		      << ", lyr " << finalcands[it].getLastHitLyr() << ": ";
+	    for (int ihit = 0; ihit < finalcands[it].nTotalHits(); ihit++)
+	      {
+		std::cout << finalcands[it].getHitIdx(ihit) <<", ";
+	      }
+	    std::cout <<  std::endl;
+	  }
+	}
       }
     }); // end parallel-for over chunk of seeds within region
   }); // end of parallel-for-each over eta regions
@@ -2019,6 +2062,11 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
   {
     prev_layer = curr_layer;
     curr_layer = layer_plan_it->m_layer;
+
+    std::cout << "Processing curr_layer = " << curr_layer << ", prev_layer = " << prev_layer << ", end - begin  = "
+	      << st_par.finding_end() - st_par.finding_begin() << ", end -current =  " << st_par.finding_end() - layer_plan_it << std::endl;
+
+
 
     const bool pickup_only = layer_plan_it->m_pickup_only;
 
@@ -2176,6 +2224,29 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
     }
     //std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
     std::sort(finalcands.begin(), finalcands.end(), sortCandByScore);
+
+    for(int it = 0; it < finalcands.size(); it++){
+      if(finalcands[it].label() == 9){
+	std::cout << "FINAL!" << std::endl;
+	std::cout << "(" <<it+1 << "/" << finalcands.size()
+		  << ") Seed " << finalcands[it].label() << ": "
+		  << finalcands[it].getCandScore() << "/" << mkfit::getScoreCand(finalcands[it])
+		  << " (" << finalcands[it].nMissingHits() << ", "
+		  << finalcands[it].nFoundHits() << ", "
+		  << finalcands[it].chi2() << ", "
+		  << finalcands[it].getSeedTypeForRanking() << ", "
+		  << finalcands[it].pT() <<"), "
+		  << "last hit index " << finalcands[it].getLastHitIdx()
+		  << ", lyr " << finalcands[it].getLastHitLyr() << ": ";
+	for (int ihit = 0; ihit < finalcands[it].nTotalHits(); ihit++)
+	  {
+	    std::cout << finalcands[it].getHitIdx(ihit) <<", ";
+	  }
+	std::cout <<  std::endl;
+      }
+    }
+
+
   }
 }
 

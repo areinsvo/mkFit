@@ -282,6 +282,19 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
+    const auto ntracks = ev.candidateTracks_.size();
+    std::cout << "==============" << std::endl;
+    for (auto itrack = 0U; itrack < ntracks-1; itrack++)
+      {
+	auto & track = ev.candidateTracks_[itrack];
+	std::cout << "Track " << itrack << " with " << track.nFoundHits() << " and seed idx " << track.label() << " hits: " ;
+	for (int ihit = 0; ihit < track.nTotalHits(); ihit++)
+	  {
+	    std::cout << track.getHitIdx(ihit) <<", ";
+	  }
+	std::cout << std::endl;
+      }
+      std::cout << "==============" << std::endl;
   }
 
   // now do backwards fit... do we want to time this section?
@@ -348,6 +361,19 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
+    const auto ntracks = ev.candidateTracks_.size();
+    std::cout << "==============" << std::endl;
+    for (auto itrack = 0U; itrack < ntracks-1; itrack++)
+      {
+	auto & track = ev.candidateTracks_[itrack];
+	std::cout << "Track " << itrack << " with " << track.nFoundHits() << " and seed idx " << track.label() << " hits: ";
+	for (int ihit = 0; ihit < track.nTotalHits(); ihit++)
+	  {
+	    std::cout << track.getHitIdx(ihit) <<", ";
+	  }
+	std::cout << std::endl;
+      }
+      std::cout << "==============" << std::endl;
   }
 
   // now do backwards fit... do we want to time this section?

@@ -69,7 +69,6 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       for (int ih = 0; ih < num_hits; ih++)
       {
         const IdxChi2List &h2a = hitsForSeed[ih];
-
         cv.push_back( cands[ m_start_seed + is ][ h2a.trkIdx ] );
 
         if (h2a.hitIdx != -4) // Could also skip storing of -3 hits.
@@ -77,6 +76,23 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
           cv.back().addHitIdx(h2a.hitIdx, m_layer, 0);
           cv.back().setChi2(h2a.chi2);
 
+	  if(cv.back().label() == 9){
+	    std::cout << "Seed label " << cv.back().label() << ", " << is << ": "
+		      << mkfit::getScoreCand(cv.back()) << "/" << mkfit::getScoreStruct( hitsForSeed[ih])
+		      << " (" << cv.back().nMissingHits() << "/" << h2a.nholes<< ", "
+		      << cv.back().nFoundHits() << "/" << h2a.nhits << ", "
+		      << cv.back().chi2() << ", "
+		      << cv.back().getSeedTypeForRanking() <<", "
+		      << cv.back().pT() <<"), "
+		      << "last hit index " << cv.back().getLastHitIdx()
+		      << ", lyr " << cv.back().getLastHitLyr() << ": ";
+	    for (int ihit = 0; ihit < cv.back().nTotalHits(); ihit++)
+	      {
+		std::cout << cv.back().getHitIdx(ihit) <<", ";
+	      }
+	    std::cout << std::endl;
+	    }
+          
           if (h2a.hitIdx >= 0)
           {
             mp_kalman_update_list->push_back(std::pair<int,int>(m_start_seed + is, ih));
