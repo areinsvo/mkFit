@@ -2143,26 +2143,6 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
       cloner.end_iteration();
     } //end of vectorized loop
-
-    // Copy the best -2 cands back to the extra list, but only in case the cloner list is empty (otherwise it's done in the cloner already).
-    for (int is = 0; is < n_seeds; ++is)
-      {
-	if (cloner.num_cands(is)==0) {
-	  int num_cands = extra_cands[is].size();
-	  if (num_cands < Config::maxCandsPerSeed)
-	    {
-	      std::vector<Track> &ov = eoccs[start_seed + is];
-	      const int max_m2 = ov.size();
-	      int cur_m2 = 0;
-	      while (cur_m2 < max_m2 && ov[cur_m2].getLastHitIdx() != -2) ++cur_m2;
-	      while (cur_m2 < max_m2 && num_cands < Config::maxCandsPerSeed)
-		{
-		  extra_cands[is].push_back( ov[cur_m2++] );
-		  ++num_cands;
-		}
-	    }
-	}
-      }
     
     cloner.end_layer();
 
