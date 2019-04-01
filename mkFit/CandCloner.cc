@@ -110,6 +110,11 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
         while (cur_m2 < max_m2 && ov[cur_m2].getLastHitIdx() != -2) ++cur_m2;
         while (cur_m2 < max_m2 && num_hits < Config::maxCandsPerSeed)
         {
+	  // make sure that we do not add back duplicate candidates, so make sure it's really a -2
+	  if (ov[cur_m2].getLastHitIdx()!=-2) {
+	    cur_m2++;
+	    continue;
+	  }
           cv.push_back( ov[cur_m2++] );
           ++num_hits;
         }
@@ -127,7 +132,18 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
     {
       if (cands[m_start_seed + is].m_state == CombCandidate::Finding)
       {
-        cands[m_start_seed + is].clear();
+
+	// get rid of all candidates except the -2's (that otherwise we are not adding back in case hitsForSeed is empty)
+	std::vector<Track> &cv = cands[m_start_seed + is];
+	std::vector<size_t> erasepos;
+	size_t pos = 0;
+	for (auto cvb : cv) {
+	  if (cvb.getLastHitIdx()!=-2) erasepos.push_back(pos);
+	  pos++;
+	}
+	auto beg = cv.begin();
+	//erase backwards...
+	for (auto p=erasepos.rbegin(); p!=erasepos.rend(); ++p) cv.erase(cv.begin()+(*p));
       }
 
       // Cross-check for what is left once there are no more changes for a whole seed.

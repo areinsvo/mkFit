@@ -1904,14 +1904,14 @@ void MkBuilder::FindTracksStandard()
 	  for(int it = 0; it < tmp_cands[is].size(); it++){
 	    if(tmp_cands[is][it].label() == 9){
 	      std::cout << "(" <<it+1 << "/" << tmp_cands[is].size()
-			<< ") Seed " << tmp_cands[is][it].label() << ", " << is << ": " 
-			<< tmp_cands[is][it].getCandScore() << "/" << mkfit::getScoreCand(tmp_cands[is][it]) 
-			<< " (" << tmp_cands[is][it].nMissingHits() << ", " 
+			<< ") Seed " << tmp_cands[is][it].label() << ", " << is << ": "
+			<< tmp_cands[is][it].getCandScore() << "/" << mkfit::getScoreCand(tmp_cands[is][it])
+			<< " (" << tmp_cands[is][it].nMissingHits() << ", "
 			<< tmp_cands[is][it].nFoundHits() << ", "
 			<< tmp_cands[is][it].chi2() << ", "
 			<< tmp_cands[is][it].getSeedTypeForRanking() << ", "
-			<< tmp_cands[is][it].pT() <<"), " 
-			<< "last hit index " << tmp_cands[is][it].getLastHitIdx() 
+			<< tmp_cands[is][it].pT() <<"), "
+			<< "last hit index " << tmp_cands[is][it].getLastHitIdx()
 			<< ", lyr " << tmp_cands[is][it].getLastHitLyr() << ": ";
 	      for (int ihit = 0; ihit < tmp_cands[is][it].nTotalHits(); ihit++)
 		{
@@ -1940,7 +1940,12 @@ void MkBuilder::FindTracksStandard()
               while (cur_m2 < max_m2 && ov[cur_m2].getLastHitIdx() != -2) ++cur_m2;
               while (cur_m2 < max_m2 && num_cands < Config::maxCandsPerSeed)
               {
-                tmp_cands[is].push_back( ov[cur_m2++] );
+		// make sure that we do not add back duplicate candidates, so make sure it's really a -2
+                if (ov[cur_m2].getLastHitIdx()!=-2) {
+		  cur_m2++;
+		  continue;
+		}
+		tmp_cands[is].push_back( ov[cur_m2++] );
                 ++num_cands;
               }
             }
@@ -2141,24 +2146,24 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
     // Copy the best -2 cands back to the extra list, but only in case the cloner list is empty (otherwise it's done in the cloner already).
     for (int is = 0; is < n_seeds; ++is)
-    {
-      if (cloner.num_cands(is)==0) {
-	int num_cands = extra_cands[is].size();
-	if (num_cands < Config::maxCandsPerSeed)
-	  {
-	    std::vector<Track> &ov = eoccs[start_seed + is];
-	    const int max_m2 = ov.size();
-	    int cur_m2 = 0;
-	    while (cur_m2 < max_m2 && ov[cur_m2].getLastHitIdx() != -2) ++cur_m2;
-	    while (cur_m2 < max_m2 && num_cands < Config::maxCandsPerSeed)
-	      {
-		extra_cands[is].push_back( ov[cur_m2++] );
-		++num_cands;
-	      }
-	  }
+      {
+	if (cloner.num_cands(is)==0) {
+	  int num_cands = extra_cands[is].size();
+	  if (num_cands < Config::maxCandsPerSeed)
+	    {
+	      std::vector<Track> &ov = eoccs[start_seed + is];
+	      const int max_m2 = ov.size();
+	      int cur_m2 = 0;
+	      while (cur_m2 < max_m2 && ov[cur_m2].getLastHitIdx() != -2) ++cur_m2;
+	      while (cur_m2 < max_m2 && num_cands < Config::maxCandsPerSeed)
+		{
+		  extra_cands[is].push_back( ov[cur_m2++] );
+		  ++num_cands;
+		}
+	    }
+	}
       }
-    }
-
+    
     cloner.end_layer();
 
     // Update loop of best candidates. CandCloner prepares the list of those
@@ -2224,6 +2229,19 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
         }
 
         dprintf("  and added %d, replaced %d of originals.\n", add_cnt, cnt);
+
+	// the CandCloner may have put the -2's at the start (while Standard puts the at end), so I want to move the -2's that are at start to the end
+	size_t nm2 = 0;
+	for (size_t it=0; it<eoccs.m_candidates[start_seed + is].size(); ++it) {
+	  if (eoccs.m_candidates[start_seed + is][it].getLastHitIdx()==-2) nm2++;
+	  else break;
+	}
+	if (nm2>0 && nm2<eoccs.m_candidates[start_seed + is].size()) {
+	  for (size_t it=0; it<nm2; ++it) {
+	    eoccs.m_candidates[start_seed + is].push_back(eoccs.m_candidates[start_seed + is][it]);
+	  }
+	  eoccs.m_candidates[start_seed + is].erase( eoccs.m_candidates[start_seed + is].begin(),eoccs.m_candidates[start_seed + is].begin()+nm2 );
+	}
 
         extra_cands[is].clear();
       }
