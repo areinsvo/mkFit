@@ -59,11 +59,13 @@ public:
   MPlexQF    Chi2;
   MPlexQI    Label;   // seed index in global seed vector (for MC truth match)
 
-  MPlexQI    NHits;
-  MPlexQI    NFoundHits;
+  // MPlexQUC   NMinusOneHits; 
+  // MPlexQUC   NHoles;
+  MPlexQUC   NHits;
+  MPlexQUC   NFoundHits;
   HitOnTrack HoTArrs[NN][Config::nMaxTrkHits];
 
-  MPlexQUI   SeedType; // seed range for ranking (0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
+  MPlexQUC   SeedType; // seed range for ranking (0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
   MPlexQI    SeedIdx; // seed index in local thread (for bookkeeping at thread level)
   MPlexQI    CandIdx; // candidate index for the given seed (for bookkeeping of clone engine)
 
@@ -189,8 +191,8 @@ private:
 
   void add_hit(const int mslot, int index, int layer)
   {
-    int &n_tot_hits = NHits(mslot, 0, 0);
-    int &n_fnd_hits = NFoundHits(mslot, 0, 0);
+    unsigned char &n_tot_hits = NHits(mslot, 0, 0);
+    unsigned char &n_fnd_hits = NFoundHits(mslot, 0, 0);
 
     if (n_tot_hits < Config::nMaxTrkHits)
     {

@@ -141,6 +141,8 @@ inline void sincos4(const float x, float& sin, float& cos)
   typedef Matriplex::Matriplex<int,   1, 1, NN>     MPlexQI;
   typedef Matriplex::Matriplex<unsigned int,   1, 1, NN>     MPlexQUI;
 
+  typedef Matriplex::Matriplex<unsigned char,   1, 1, NN>     MPlexQUC;
+
   typedef Matriplex::Matriplex<bool,  1, 1, NN>     MPlexQB;
 
   } // end namespace mkfit

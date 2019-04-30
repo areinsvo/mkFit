@@ -30,9 +30,10 @@ struct IdxChi2List
 public:
   int   trkIdx; // candidate index
   int   hitIdx; // hit index
-  int   nhits;  // number of hits (used for sorting)
-  int   nholes;  // number of holes (used for sorting)
-  unsigned int seedtype; // seed type idx (used for sorting: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
+  unsigned char   nhits;  // number of hits (used for sorting)
+  unsigned char   nholes;  // number of holes (used for sorting)
+  //  unsigned char   nminusones; // number of minus ones (used to decide when to stop the track)
+  unsigned char   seedtype; // seed type idx (used for sorting: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
   float pt;   // pt (used for sorting)
   float chi2;   // total chi2 (used for sorting)
   int score; // score used for candidate ranking
@@ -332,20 +333,20 @@ public:
 
   void setNFoundHits() {
     nFoundHits_=0;
-    for (int i = 0; i <= lastHitIdx_; i++) {
+    for (unsigned char i = 0; i <= lastHitIdx_; i++) {
       if (hitsOnTrk_[i].index >= 0 || hitsOnTrk_[i].index == -9) nFoundHits_++;
     }
   }
 
   CUDA_CALLABLE
-  void setNFoundHits(int nHits) { nFoundHits_ = nHits; }
-  void setNTotalHits(int nHits) { lastHitIdx_ = nHits - 1; }
+  void setNFoundHits(unsigned char nHits) { nFoundHits_ = nHits; }
+  void setNTotalHits(unsigned char nHits) { lastHitIdx_ = nHits - 1; }
 
   CUDA_CALLABLE
   void resetHits() { lastHitIdx_ = -1; nFoundHits_ =  0; }
 
-  CUDA_CALLABLE int  nFoundHits() const { return nFoundHits_; }
-  CUDA_CALLABLE int  nTotalHits() const { return lastHitIdx_+1; }
+  CUDA_CALLABLE unsigned char  nFoundHits() const { return nFoundHits_; }
+  CUDA_CALLABLE unsigned char  nTotalHits() const { return lastHitIdx_+1; }
 
   int nStoredFoundHits() const
   {
@@ -495,7 +496,7 @@ private:
   TrackState    state_;
   float         chi2_       =  0.;
   short int     lastHitIdx_ = -1;
-  short int     nFoundHits_ =  0;
+  unsigned char     nFoundHits_ =  0;
   Status        status_;
   int           label_      = -1;
   HitOnTrack    hitsOnTrk_[Config::nMaxTrkHits];
