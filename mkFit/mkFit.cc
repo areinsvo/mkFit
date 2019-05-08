@@ -386,19 +386,23 @@ void test_standard()
 #endif
   }
 
-  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
+  //  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
 
   dprint("parallel_for step size " << (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents);
 
   time = dtime();
 
-  int events_per_thread = (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents;
-  tbb::parallel_for(tbb::blocked_range<int>(0, Config::numThreadsEvents, 1),
-    [&](const tbb::blocked_range<int>& threads)
-  {
-    int thisthread = threads.begin();
 
-    assert(threads.begin() == threads.end()-1 && thisthread < Config::numThreadsEvents);
+  int events_per_thread = (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents;
+  //tbb::parallel_for(tbb::blocked_range<int>(0, Config::numThreadsEvents, 1),
+  //  [&](const tbb::blocked_range<int>& threads)
+  //{
+#pragma omp parallel for 
+  for(int thisthread = 0; thisthread< Config::numThreadsEvents; thisthread++)
+    {
+      //    int thisthread = threads.begin();
+
+    //assert(threads.begin() == threads.end()-1 && thisthread < Config::numThreadsEvents);
 
     std::vector<Track> plex_tracks;
     auto& ev     = *evs[thisthread].get();
@@ -416,6 +420,7 @@ void test_standard()
     dprint("thisthread " << thisthread << " events " << Config::nEvents << " events/thread " << events_per_thread
                          << " range " << evstart << ":" << evend);
 
+    //This loop is not parallelized, but is run sequentially for each of the numThreadsEvents threads
     for (int evt = evstart; evt < evend; ++evt)
     {
       ev.Reset(nevt++);
@@ -499,8 +504,9 @@ void test_standard()
       // probably should convert to a scaled long so can use std::atomic<Integral>
       for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
       if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
+    } //end of loop over events 
     }
-  }, tbb::simple_partitioner());
+  //  }, tbb::simple_partitioner()); //end of tbb parallel for
 
 #endif
   time = dtime() - time;
