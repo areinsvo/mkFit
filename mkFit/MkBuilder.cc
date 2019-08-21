@@ -592,7 +592,7 @@ void MkBuilder::import_seeds()
     m_event->seedEtaSeparators_[i] += m_event->seedEtaSeparators_[i - 1];
   }
 }
-
+  /*
 void MkBuilder::find_seeds()
 {
   fprintf(stderr, "__FILE__::__LINE__ Needs fixing for B/E support, search for XXMT4K\n");
@@ -645,7 +645,7 @@ void MkBuilder::find_seeds()
     dprint("iseed: " << iseed << " mcids: " << hit0.mcTrackID(m_event->simHitsInfo_) << " " <<
 	   hit1.mcTrackID(m_event->simHitsInfo_) << " " << hit1.mcTrackID(m_event->simHitsInfo_));
   }
-}
+}*/
 
 } // end namespace mkfit
 
@@ -1514,12 +1514,12 @@ void MkBuilder::PrepareSeeds()
     // map seed track hits into layer_of_hits
     map_track_hits(m_event->seedTracks_);
   }
-  else if (Config::seedInput == findSeeds)
+  /*  else if (Config::seedInput == findSeeds)
   {
     find_seeds();
     // XXXMT4K Those should be either sorted or sort should be called afterwards.
     // Note, sort also fills out some eta region info arrays in Event.
-  }
+    }*/
   else 
   {
     std::cerr << "No input seed collection option selected!! Exiting..." << std::endl;

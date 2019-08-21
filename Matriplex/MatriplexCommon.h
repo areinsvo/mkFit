@@ -12,9 +12,10 @@
 // Intrinsics -- preamble
 //==============================================================================
 
-#include "immintrin.h"
+//#include "immintrin.h"
 
 #if defined(MPLEX_USE_INTRINSICS)
+#include "immintrin.h"
 
   #if defined(__MIC__) || defined(__AVX__) || defined(__AVX512F__)
 
