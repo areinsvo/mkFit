@@ -12,6 +12,7 @@
 
 #include "Ice/IceRevisitedRadix.h"
 
+#include <omp.h>
 #include <tbb/tbb.h>
 
 // Set this to select a single track for deep debugging:
@@ -1963,16 +1964,20 @@ void MkBuilder::FindTracksCloneEngine()
 
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
-  tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
-    [&](int region)
-  {
+ #pragma omp parallel for
+  for(int region = 0; region < m_regions.size(); region++){
+
+ 
+    //  tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
+    // [&](int region)
+    // {
     const RegionOfSeedIndices rosi(m_event, region);
 
     // adaptive seeds per task based on the total estimated amount of work to divide among all threads
-    const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
-    dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
+    //const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
+    // dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
 
-    tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
+    /*    tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
       [&](const tbb::blocked_range<int>& seeds)
     {
       CLONER( cloner );
@@ -1980,8 +1985,21 @@ void MkBuilder::FindTracksCloneEngine()
 
       // loop over layers
       find_tracks_in_layers(*cloner, mkfndr.get(), seeds.begin(), seeds.end(), region);
-    });
-  });
+      });*/
+#pragma omp parallel for
+    for(int i = rosi.m_reg_beg; i < rosi.m_reg_end; i=i+Config::numSeedsPerTask){
+      CLONER( cloner );
+      FINDER( mkfndr );
+      //      int end = std::min(i+Config::numSeedsPerTask,rosi.m_reg_end+1);
+      int end = (i+Config::numSeedsPerTask < rosi.m_reg_end) ? (i+Config::numSeedsPerTask) : (rosi.m_reg_end);
+
+      //      std::cout<<"Processing " << i << " to " << end << " for region " << region << " (" << rosi.m_reg_beg << "," << rosi.m_reg_end << ")" << std::endl;
+
+      // loop over layers
+      find_tracks_in_layers(*cloner, mkfndr.get(), i, end, region);
+    }
+  }
+    //  });
 
   // debug = false;
 }
