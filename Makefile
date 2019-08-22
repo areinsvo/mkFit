@@ -61,7 +61,7 @@ ${LIB_CORE}: ${CORE_OBJS}
 	${CXX} ${CXXFLAGS} ${VEC_HOST} ${CORE_OBJS} -shared -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} ${LDFLAGS}
 
 main: ${AUTO_TGTS} ${LIB_CORE} main.o ${LIBUSOLIDS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ main.o ${LIBUSOLIDS} ${LDFLAGS_HOST} ${LDFLAGS} -Llib -lMicCore -Wl,-rpath,lib
+	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ main.o ${LIBUSOLIDS} ${LDFLAGS_HOST} ${LDFLAGS} -Llib -lMicCore -Wl,-rpath,lib ${OTHER_LIB}
 
 ${OBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<

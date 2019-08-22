@@ -9,7 +9,12 @@
 include ../Makefile.config
 
 CPPEXTRA := -I.. ${USER_CPPFLAGS} ${DEFS}
-LDEXTRA  := -ltbb ${USER_LDFLAGS}
+ifdef WITH_TBB
+  LDEXTRA  := -ltbb ${USER_LDFLAGS}
+else
+  LDEXTRA  := ${USER_LDFLAGS}
+endif
+
 
 CPPFLAGS := ${CPPEXTRA} ${CPPFLAGS}
 CXXFLAGS += ${USER_CXXFLAGS}
