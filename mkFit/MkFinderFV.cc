@@ -218,14 +218,19 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
       << pb1[iseed] << "-" << pb2[iseed]);
   }
 
+#ifdef  MPLEX_USE_INTRINSICS
   _mm_prefetch((const char*) &L.m_phi_bin_infos[qb1[0]][pb1[0] & L.m_phi_mask], _MM_HINT_T0);
+#endif
 
   for (auto iseed = 0; iseed < nseeds; ++iseed) {
     const int base = iseed*ncands;
     for (int qi = qb1[iseed]; qi < qb2[iseed]; ++qi) {
+
+#ifdef  MPLEX_USE_INTRINSICS
       if (qi+1 < qb2[iseed]) {
         _mm_prefetch((const char*) &L.m_phi_bin_infos[qi+1][pb1[iseed] & L.m_phi_mask], _MM_HINT_T0);
       }
+#endif
       for (int pi = pb1[iseed]; pi < pb2[iseed]; ++pi) {
         int pb = pi & L.m_phi_mask;
         for (int hi = L.m_phi_bin_infos[qi][pb].first; hi < L.m_phi_bin_infos[qi][pb].second; ++hi) {

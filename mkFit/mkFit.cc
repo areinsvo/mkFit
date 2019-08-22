@@ -1,7 +1,7 @@
 #include "Matriplex/MatriplexCommon.h"
 
-#include "fittestMPlex.h"
-#include "buildtestMPlex.h"
+//#include "fittestMPlex.h"
+//#include "buildtestMPlex.h"
 
 #include "MkBuilder.h"
 #include "MkFitter.h"
@@ -33,7 +33,9 @@
 //#define DEBUG
 #include "Debug.h"
 
+#ifdef TBB
 #include <tbb/task_scheduler_init.h>
+#endif
 
 #if defined(USE_VTUNE_PAUSE)
 #include "ittnotify.h"
@@ -215,7 +217,9 @@ void generate_and_save_tracks()
 
   printf("writing %i events\n", Nevents);
 
+#ifdef TBB
   tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
+#endif
 
   Event ev(geom, *val, 0);
   for (int evt = 0; evt < Nevents; ++evt)
@@ -303,8 +307,10 @@ void test_standard()
   double time = dtime();
 
 #if USE_CUDA_OLD
+#ifdef TBB
   tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
   //tbb::task_scheduler_init tbb_init(tbb::task_scheduler_init::automatic);
+#endif
 
   //omp_set_num_threads(Config::numThreadsFinder);
   // fittest time. Sum of all events. In case of multiple events
@@ -386,7 +392,9 @@ void test_standard()
 #endif
   }
 
+#ifdef TBB
   //  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
+#endif
 
   dprint("parallel_for step size " << (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents);
 
@@ -394,9 +402,11 @@ void test_standard()
 
 
   int events_per_thread = (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents;
+#ifdef TBB
   //tbb::parallel_for(tbb::blocked_range<int>(0, Config::numThreadsEvents, 1),
   //  [&](const tbb::blocked_range<int>& threads)
   //{
+#endif
 #pragma omp parallel for 
   for(int thisthread = 0; thisthread< Config::numThreadsEvents; thisthread++)
     {
@@ -506,7 +516,9 @@ void test_standard()
       if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
     } //end of loop over events 
     }
+#ifdef TBB
   //  }, tbb::simple_partitioner()); //end of tbb parallel for
+#endif
 
 #endif
   time = dtime() - time;
