@@ -342,6 +342,9 @@ void Event::Validate()
     validation_.makeSeedTkToRecoTkMaps(*this);
     validation_.fillEfficiencyTree(*this);
     validation_.fillFakeRateTree(*this);
+    if(Config::keepRecoInfo){
+      validation_.fillRecoTree(*this);
+    }
   }
 
   // special cmssw to mkfit validation

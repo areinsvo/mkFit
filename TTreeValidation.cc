@@ -10,7 +10,7 @@ TTreeValidation::TTreeValidation(std::string fileName)
 {
   std::lock_guard<std::mutex> locker(glock_);
   gROOT->ProcessLine("#include <vector>");
-
+  R__LOAD_LIBRARY(libmydict.so);
   // KPM via DSR's ROOT wizardry: ROOT's context management implicitly assumes that a file is opened and
   // closed on the same thread. To avoid the problem, we declare a local
   // TContext object; when it goes out of scope, its destructor unregisters
@@ -22,7 +22,10 @@ TTreeValidation::TTreeValidation(std::string fileName)
   if (Config::sim_val_for_cmssw || Config::sim_val) 
   { 
     TTreeValidation::initializeEfficiencyTree();
-    TTreeValidation::initializeFakeRateTree();  
+    TTreeValidation::initializeFakeRateTree(); 
+    if(Config::keepRecoInfo){
+      TTreeValidation::initializeRecoTree();
+    }
   }
   if (Config::cmssw_val)
   {
@@ -35,6 +38,41 @@ TTreeValidation::TTreeValidation(std::string fileName)
     TTreeValidation::initializeFitTree();
   }
   TTreeValidation::initializeConfigTree();
+}
+
+void TTreeValidation::initializeRecoTree()
+{
+  //Save properties of mkFit tracks to study duplicates
+  recotree_ = std::make_unique<TTree>("recotree","recotree");
+  recotree_->SetDirectory(0);
+
+  recotree_->Branch("evtID",&evtID_reco_);
+  recotree_->Branch("mcID",&mcID_reco_);
+  recotree_->Branch("isDuplicate",&isDuplicate_);
+  recotree_->Branch("seedID",&seedID_reco_);
+
+  recotree_->Branch("xhit",&xhit_build_reco_);
+  recotree_->Branch("yhit",&yhit_build_reco_);
+  recotree_->Branch("zhit",&zhit_build_reco_);
+
+  recotree_->Branch("pt",&pt_build_reco_);
+  recotree_->Branch("ept",&ept_build_reco_);
+  recotree_->Branch("phi",&phi_build_reco_);
+  recotree_->Branch("ephi",&ephi_build_reco_);
+  recotree_->Branch("eta",&eta_build_reco_);
+  recotree_->Branch("eeta",&eeta_build_reco_);
+
+  recotree_->Branch("nHits",&nHits_build_reco_);
+  recotree_->Branch("nLayers",&nLayers_build_reco_);
+  recotree_->Branch("nHitsMatched",&nHitsMatched_build_reco_);
+  recotree_->Branch("fracHitsMatched",&fracHitsMatched_build_reco_);
+  recotree_->Branch("lastlyr",&lastlyr_build_reco_);
+
+  if (Config::keepHitInfo)
+  {
+    recotree_->Branch("hitlyrs",&hitlyrs_reco_);
+    recotree_->Branch("hitidxs",&hitidxs_reco_);
+  }
 }
 
 void TTreeValidation::initializeEfficiencyTree()
@@ -1270,13 +1308,100 @@ void TTreeValidation::fillFitTree(const Event& ev)
   }
 }
 
-void TTreeValidation::fillHitInfo(const Track & track, std::vector<int> & lyrs, std::vector<int> & idxs)
+  void TTreeValidation::fillHitInfo(const Track & track, std::vector<int> & lyrs, std::vector<int> & idxs)
 {
   for (int ihit = 0; ihit < track.nTotalHits(); ihit++)
   {
     lyrs.emplace_back(track.getHitLyr(ihit));
     idxs.emplace_back(track.getHitIdx(ihit));
   }
+}
+
+void TTreeValidation::fillRecoTree(const Event& ev)
+{
+  std::lock_guard<std::mutex> locker(glock_);
+  const auto ievt = ev.evtID();
+  evtID_reco_ = ievt;
+
+  const auto& evt_sim_tracks   = ev.simTracks_;
+  const auto& evt_build_tracks = ev.candidateTracks_;
+  const auto& evt_build_extras = ev.candidateTracksExtra_;
+  const auto& evt_layer_hits   = ev.layerHits_;
+  const auto& evt_sim_trackstates = ev.simTrackStates_;
+
+  // clear the brancheas first 
+  isDuplicate_.clear();
+  mcID_reco_.clear();
+  seedID_reco_.clear();
+
+  xhit_build_reco_.clear();
+  yhit_build_reco_.clear();
+  zhit_build_reco_.clear();
+
+  pt_build_reco_.clear();
+  ept_build_reco_.clear();
+  phi_build_reco_.clear();
+  ephi_build_reco_.clear();
+  eta_build_reco_.clear();
+  eeta_build_reco_.clear();
+
+  nHits_build_reco_.clear();
+  nLayers_build_reco_.clear();
+  nHitsMatched_build_reco_.clear();
+  fracHitsMatched_build_reco_.clear();
+  lastlyr_build_reco_.clear();
+
+  if (Config::keepHitInfo)
+    {
+      hitlyrs_reco_.clear();
+      hitidxs_reco_.clear();
+    }
+
+  for (const auto& simtrack : evt_sim_tracks)
+  {
+    int mcTrack = simtrack.label();
+    if (simToBuildMap_.count(mcTrack) && simtrack.isFindable())
+    {
+      for (int i = 0; i < simToBuildMap_[mcTrack].size();i++)
+      {
+
+	mcID_reco_.emplace_back(mcTrack);
+	bool duplicated = (simToBuildMap_[mcTrack].size() >1);
+	isDuplicate_.emplace_back(duplicated);
+	const auto& buildtrack = evt_build_tracks[simToBuildMap_[mcTrack][i]]; //returns build track matched to sim track
+	const auto& buildextra = evt_build_extras[buildtrack.label()];
+
+	seedID_reco_.emplace_back(buildextra.seedID());
+
+	const Hit& lasthit = evt_layer_hits[buildtrack.getLastFoundHitLyr()][buildtrack.getLastFoundHitIdx()];
+	xhit_build_reco_.emplace_back(lasthit.x());
+	yhit_build_reco_.emplace_back(lasthit.y());
+	zhit_build_reco_.emplace_back(lasthit.z());
+
+	pt_build_reco_.emplace_back(buildtrack.pT());
+	ept_build_reco_.emplace_back(buildtrack.epT());
+	phi_build_reco_.emplace_back(buildtrack.momPhi());
+	ephi_build_reco_.emplace_back(buildtrack.emomPhi());
+	eta_build_reco_.emplace_back(buildtrack.momEta());
+	eeta_build_reco_.emplace_back(buildtrack.emomEta());
+
+	nHits_build_reco_.emplace_back(buildtrack.nFoundHits());
+	nLayers_build_reco_.emplace_back(buildtrack.nUniqueLayers(false));
+	nHitsMatched_build_reco_.emplace_back(buildextra.nHitsMatched());
+	fracHitsMatched_build_reco_.emplace_back(buildextra.fracHitsMatched());
+	lastlyr_build_reco_.emplace_back(buildtrack.getLastFoundHitLyr());
+
+	if (Config::keepHitInfo){
+	  std::vector<int> lyrs;
+	  std::vector<int> idxs;
+	  TTreeValidation::fillHitInfo(buildtrack,lyrs,idxs);
+	  hitlyrs_reco_.emplace_back(lyrs);
+	  hitidxs_reco_.emplace_back(idxs);
+	}
+      }
+    }
+  }
+  recotree_->Fill();
 }
 
 void TTreeValidation::fillEfficiencyTree(const Event& ev)
@@ -2891,6 +3016,10 @@ void TTreeValidation::saveTTrees()
 
     frtree_->SetDirectory(f_.get());
     frtree_->Write();
+    if(Config::keepRecoInfo){
+      recotree_->SetDirectory(f_.get());
+      recotree_->Write();
+    }
   }
   if (Config::cmssw_val)
   {

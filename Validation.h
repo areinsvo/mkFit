@@ -45,6 +45,7 @@ public:
 
   virtual void setTrackScoresDumbCMSSW(Event &) {}
 
+  virtual void fillRecoTree(const Event&) {}
   virtual void fillEfficiencyTree(const Event&) {}
   virtual void fillFakeRateTree(const Event&) {}
   virtual void fillConfigTree() {}

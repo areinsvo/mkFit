@@ -2,7 +2,13 @@
 #define _ttreevalidation_
 
 #include "Validation.h"
-
+//#include "libmydict.so"
+//#include "LinkDef.h"
+//#include <vector>
+//#ifdef __ROOTCLING__
+//#pragma link C++ class vector<vector <float>>+;
+//#pragma link C++ class vector<vector <int>>+;
+//#endif
 #ifdef NO_ROOT
 namespace mkfit {
 
@@ -35,7 +41,8 @@ public:
   void initializeCMSSWEfficiencyTree();
   void initializeCMSSWFakeRateTree();
   void initializeFitTree();
-  
+  void initializeRecoTree();
+
   void alignTracks(TrackVec& evt_tracks, TrackExtraVec& evt_extra, bool alignExtra) override;
 
   void collectFitInfo(const FitVal& tmpfitval, int tkid, int layer) override;
@@ -67,6 +74,7 @@ public:
 
   void fillHitInfo(const Track& track, std::vector<int> & lyrs, std::vector<int> & idxs);
 
+  void fillRecoTree(const Event& ev) override;
   void fillEfficiencyTree(const Event& ev) override;
   void fillFakeRateTree(const Event& ev) override;
   void fillConfigTree() override;
@@ -108,6 +116,20 @@ public:
   // Special map for associating reco tracks to seed tracks for sim_val_for_cmssw
   TkIDToTkIDMap candToSeedMapDumbCMSSW_;
   TkIDToTkIDMap fitToSeedMapDumbCMSSW_;
+
+  //Reco Tree
+  std::unique_ptr<TTree> recotree_;
+  int evtID_reco_;
+  std::vector<int>   mcID_reco_,seedID_reco_;
+  std::vector<bool>  isDuplicate_;
+  std::vector<float> xhit_build_reco_,yhit_build_reco_,zhit_build_reco_;
+  std::vector<float> pt_build_reco_,ept_build_reco_,phi_build_reco_;
+  std::vector<float> ephi_build_reco_,eta_build_reco_,eeta_build_reco_;
+  std::vector<int>   nHits_build_reco_,nLayers_build_reco_,nHitsMatched_build_reco_;
+  std::vector<float> fracHitsMatched_build_reco_;
+  std::vector<int>   lastlyr_build_reco_;
+  std::vector<std::vector<int>> hitlyrs_reco_;
+  std::vector<std::vector<int>> hitidxs_reco_;
 
   // Efficiency Tree 
   std::unique_ptr<TTree> efftree_;  
