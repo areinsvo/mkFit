@@ -5,6 +5,8 @@
 ###########
 
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
+style=${2:-"--mtv-like-val"} # option --mtv-like-val
+inputBin=${3:-"91XPU70CCC"}
 
 ###################
 ## Configuration ##
@@ -14,9 +16,24 @@ source xeon_scripts/common-variables.sh ${suite}
 source xeon_scripts/init-env.sh
 
 ## Common file setup
-dir=/data2/slava77/samples/2017/pass-c93773a/initialStep
-subdir=PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU
-file=memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin
+case ${inputBin} in 
+"91XPU70CCC")
+        echo "Inputs from 2017 initialStep PU 70 with CCC"
+        dir=/data2/slava77/samples/2017/pass-c93773a/initialStep
+        subdir=PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU
+        file=memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin
+        ;;
+"104XPU70CCC")
+        echo "Inputs from 2018 initialStep/default PU 70 with CCC"
+        dir=/data2/slava77/samples/2018/pass-e072c1a/initialStep/default
+        subdir=11024.0_TTbar_13/AVE_70_BX01_25ns
+        file=memoryFile.fv3.clean.writeAll.CCC1620.recT.190423-19a1bc3.bin
+        ;;
+*)
+        echo "INPUT BIN IS UNKNOWN"
+        exit 12
+        ;;
+esac
 nevents=500
 
 ## Common executable setup
@@ -24,7 +41,7 @@ maxth=64
 maxvu=16
 maxev=32
 seeds="--cmssw-n2seeds"
-exe="./mkFit/mkFit --silent ${seeds} --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents}"
+exe="./mkFit/mkFit --silent ${seeds} --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents} --remove-dup"
 
 ## Common output setup
 tmpdir="tmp"
@@ -37,17 +54,18 @@ siminfo="--try-to-save-sim-info"
 bkfit="--backward-fit-pca"
 
 ## validation options: SIMVAL == sim tracks as reference, CMSSWVAL == cmssw tracks as reference
-SIMVAL="SIMVAL --sim-val ${siminfo} ${bkfit}"
-CMSSWVAL="CMSSWVAL --cmssw-val-fhit-bprm ${bkfit}"
-declare -a vals=(SIMVAL CMSSWVAL)
+SIMVAL="SIMVAL --sim-val ${siminfo} ${bkfit} ${style}"
+SIMVAL_SEED="SIMVALSEED --sim-val ${siminfo} ${bkfit} --mtv-require-seeds"
+declare -a vals=(SIMVAL SIMVAL_SEED)
 
 ## plotting options
 SIMPLOT="SIMVAL 0"
-CMSSWPLOT="CMSSWVAL 1"
-declare -a plots=(SIMPLOT CMSSWPLOT)
+SIMPLOTSEED="SIMVALSEED 0"
+declare -a plots=(SIMPLOT SIMPLOTSEED)
 
 ## special cmssw dummy build
-CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks"
+CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks ${style}"
+CMSSW2="CMSSW cmssw SIMVALSEED --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks --mtv-require-seeds"
 
 ###############
 ## Functions ##
@@ -100,6 +118,11 @@ echo ${CMSSW} | while read -r bN bO vN vO
 do
     doVal "${bN}" "${bO}" "${vN}" "${vO}"
 done
+## Special simtrack validation vs cmssw tracks
+echo ${CMSSW2} | while read -r bN bO vN vO
+do
+    doVal "${bN}" "${bO}" "${vN}" "${vO}"
+done
 
 ## Run validation for standard build options
 for val in "${vals[@]}"
@@ -131,6 +154,13 @@ do echo ${!plot} | while read -r pN pO
 		plotVal "${base}" "${bN}" "${pN}" "${pO}"
 	    done
 	fi
+	if [[ "${pN}" == "SIMVALSEED" ]]
+	then
+	    echo ${CMSSW2} | while read -r bN bO val_extras
+	    do
+		plotVal "${base}" "${bN}" "${pN}" "${pO}"
+	    done
+	fi
 
 	## Compute observables for builds chosen 
 	for build in "${val_builds[@]}"
@@ -146,4 +176,8 @@ do echo ${!plot} | while read -r pN pO
     done
 done
 
+## Final cleanup
 make distclean ${mVal}
+
+## Final message
+echo "Finished physics validation!"

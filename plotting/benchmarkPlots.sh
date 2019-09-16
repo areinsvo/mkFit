@@ -2,12 +2,14 @@
 
 ## input
 suite=${1:-"forPR"}
+useARCH=${2:-0}
+lnxuser=${3:-${USER}}
 
-source xeon_scripts/common-variables.sh ${suite}
+## In case this is run separately from the main script
+source xeon_scripts/common-variables.sh ${suite} ${useARCH} ${lnxuser}
 source xeon_scripts/init-env.sh
 
-##### Make benchmark plots for each architecture #####
-for archV in "SNB snb" "KNL knl" "SKL-SP skl-sp"
+for archV in "${arch_array_benchmark[@]}" 
 do echo ${archV} | while read -r archN archO
     do
 	for build in "${ben_builds[@]}"

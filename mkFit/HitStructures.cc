@@ -29,7 +29,6 @@ void LayerOfHits::setup_bins(float qmin, float qmax, float dq)
   m_fq = m_nq / (qmax - qmin); // qbin = (q_hit - m_qmin) * m_fq;
 
   m_phi_bin_infos.resize(m_nq);
-  for (int i = 0; i < m_nq; ++i) m_phi_bin_infos[i].resize(Config::m_nphi);
 }
 
 void LayerOfHits::SetupLayer(const LayerInfo &li)
@@ -74,16 +73,19 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   const int  size   = hitv.size();
   const bool is_brl = is_barrel();
 
+#ifdef COPY_SORTED_HITS
   if (m_capacity < size)
   {
     free_hits();
     alloc_hits(1.02 * size);
   }
+#endif
 
-  if (!Config::usePhiQArrays)
+  if (Config::usePhiQArrays)
   {
-    m_hit_phis.resize(size);
+    m_hit_qs.resize(size);
   }
+  m_hit_phis.resize(size);
 
   struct HitInfo
   {
@@ -94,11 +96,10 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   };
 
   std::vector<HitInfo> ha(size);
-  std::vector<udword>     hit_qphiFines(size);
+  std::vector<udword>  hit_qphiFines(size);
   
-  int nqh = m_nq / 2;
   {
-    for (int i =0; i < size; ++i)
+    for (int i = 0; i < size; ++i)
     {
       auto const& h = hitv[i];
       
@@ -123,24 +124,12 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   {
     int j = sort.GetRanks()[i];
 
-    // XXXX MT: Endcap has special check - try to get rid of this!
-    // Also, WTF ... this brings in holes as pos i is not filled.
-    // If this stays I need i_offset variable.
-    /* UNCOMMENT FOR DEBUGS??
-    if ( ! is_brl && (hitv[j].r() > m_qmax || hitv[j].r() < m_qmin))
-    {
-      printf("LayerOfHits::SuckInHits WARNING hit out of r boundary of disk\n"
-             "  layer %d hit %d hit_r %f limits (%f, %f)\n",
-             layer_id(), j, hitv[j].r(), m_qmin, m_qmax);
-      // Figure out of this needs to stay ... and fix it
-      // --m_size;
-      // continue;
-    }
-    */
-
     // Could fix the mis-sorts. Set ha size to size + 1 and fake last entry to avoid ifs.
 
+#ifdef COPY_SORTED_HITS
     memcpy(&m_hits[i], &hitv[j], sizeof(Hit));
+#endif
+
     if (Config::usePhiQArrays)
     {
       m_hit_phis[i] = ha[j].phi;
@@ -161,6 +150,11 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
     m_phi_bin_infos[q_bin][phi_bin].second++;
   }
 
+#ifndef COPY_SORTED_HITS
+  operator delete [] (m_hit_ranks);
+  m_hit_ranks = sort.RelinquishRanks();
+  m_ext_hits  = & hitv;
+#endif
 
   // Check for mis-sorts due to lost precision (not really important).
   // float phi_prev = 0;
@@ -287,6 +281,55 @@ EventOfHits::EventOfHits(TrackerInfo &trk_inf) :
   {
     m_layers_of_hits[li.m_layer_id].SetupLayer(li);
   }
+}
+
+
+//==============================================================================
+// CombCandidate
+//==============================================================================
+
+void CombCandidate::MergeCandsAndBestShortOne(bool update_score, bool sort_cands)
+{
+  std::vector<Track> &finalcands = *this;
+  Track              &best_short = m_best_short_cand;
+
+  if ( ! finalcands.empty())
+  {
+    if (update_score)
+    {
+      for (auto &c : finalcands) c.setCandScore( getScoreCand(c) );
+    }
+    if (sort_cands)
+    {
+      std::sort(finalcands.begin(), finalcands.end(), sortByScoreCand);
+    }
+
+    if (best_short.getCandScore() > finalcands.back().getCandScore())
+    {
+      auto ci = finalcands.begin();
+      while (ci->getCandScore() > best_short.getCandScore()) ++ci;
+
+      if (finalcands.size() > static_cast<size_t>(Config::maxCandsPerSeed))  finalcands.pop_back();
+
+      // To print out what has been replaced -- remove when done with short track handling.
+      /*
+        if (ci == finalcands.begin())
+        {
+        printf("FindTracksStd -- Replacing best cand (%d) with short one (%d) in final sorting for seed index=%d\n",
+                     finalcands.front().getCandScore(), best_short.getCandScore(), iseed);
+        }
+      */
+
+      finalcands.insert(ci, best_short);
+    }
+
+  }
+  else if (best_short.getCandScore() > getScoreWorstPossible())
+  {
+    finalcands.push_back( best_short );
+  }
+
+  best_short.setCandScore( getScoreWorstPossible() );
 }
 
 } // end namespace mkfit

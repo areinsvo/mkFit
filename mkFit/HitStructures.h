@@ -38,7 +38,7 @@ typedef tbb::concurrent_vector<TripletIdx> TripletIdxConVec;
 
 typedef std::pair<uint16_t, uint16_t> PhiBinInfo_t;
 
-typedef std::vector<PhiBinInfo_t> vecPhiBinInfo_t;
+typedef std::array<PhiBinInfo_t, Config::m_nphi> vecPhiBinInfo_t;
 
 typedef std::vector<vecPhiBinInfo_t> vecvecPhiBinInfo_t;
 
@@ -60,18 +60,30 @@ inline bool sortTrksByPhiMT(const Track& t1, const Track& t2)
 // Note: the same code is used for barrel and endcap. In barrel the longitudinal
 // bins are in Z and in endcap they are in R -- here this coordinate is called Q
 
+// When not defined, hits are accessed from the original hit vector and
+// only sort ranks are kept for proper access.
+//
+//#define COPY_SORTED_HITS
+
 class LayerOfHits
 {
+private:
+#ifdef COPY_SORTED_HITS
+  Hit                      *m_hits = 0;
+  int                       m_capacity = 0;
+#else
+  unsigned int             *m_hit_ranks = 0; // allocated by IceSort via new []
+  const HitVec             *m_ext_hits;
+#endif
+
 public:
   const LayerInfo          *m_layer_info = 0;
-  Hit                      *m_hits = 0;
   vecvecPhiBinInfo_t        m_phi_bin_infos;
   std::vector<float>        m_hit_phis;
   std::vector<float>        m_hit_qs;
 
   float m_qmin, m_qmax, m_fq;
   int   m_nq = 0;
-  int   m_capacity = 0;
 
   int   layer_id()  const { return m_layer_info->m_layer_id;    }
   bool  is_barrel() const { return m_layer_info->is_barrel();   }
@@ -137,24 +149,21 @@ public:
 
 protected:
 
-  void setup_bins(float qmin, float qmax, float dq);
-
+#ifdef COPY_SORTED_HITS
   void alloc_hits(int size)
   {
     m_hits = (Hit*) _mm_malloc(sizeof(Hit) * size, 64);
     m_capacity = size;
     for (int ihit = 0; ihit < m_capacity; ihit++){m_hits[ihit] = Hit();} 
-    if (Config::usePhiQArrays)
-    {
-      m_hit_phis.resize(size);
-      m_hit_qs  .resize(size);
-    }
   }
 
   void free_hits()
   {
     _mm_free(m_hits);
   }
+#endif
+
+  void setup_bins(float qmin, float qmax, float dq);
 
   void set_phi_bin(int q_bin, int phi_bin, uint16_t &hit_count, uint16_t &hits_in_bin)
   {
@@ -184,7 +193,11 @@ public:
 
   ~LayerOfHits()
   {
+#ifdef COPY_SORTED_HITS
     free_hits();
+#else
+    operator delete [] (m_hit_ranks);
+#endif
   }
 
   void  SetupLayer(const LayerInfo &li);
@@ -206,6 +219,16 @@ public:
   const vecPhiBinInfo_t& GetVecPhiBinInfo(float q) const { return m_phi_bin_infos[GetQBin(q)]; }
 
   void  SuckInHits(const HitVec &hitv);
+
+#ifdef COPY_SORTED_HITS
+  int GetHitIndex(int i)   const { return i; }
+  const Hit& GetHit(int i) const { return m_hits[i]; }
+  const Hit* GetHitArray() const { return m_hits; }
+#else
+  int GetHitIndex(int i)   const { return m_hit_ranks[i]; }
+  const Hit& GetHit(int i) const { return (*m_ext_hits)[m_hit_ranks[i]]; }
+  const Hit* GetHitArray() const { return & (*m_ext_hits)[0]; }
+#endif
 
   void  SelectHitIndices(float q, float phi, float dq, float dphi, std::vector<int>& idcs, bool isForSeeding=false, bool dump=false);
 
@@ -250,9 +273,12 @@ class CombCandidate : public std::vector<Track>
 public:
   enum SeedState_e { Dormant = 0, Finding, Finished };
 
-  SeedState_e m_state           = Dormant;
-  int         m_last_seed_layer = -1;
+  Track        m_best_short_cand;
+  SeedState_e  m_state           = Dormant;
+  int          m_last_seed_layer = -1;
   unsigned int m_seed_type = 0;
+
+  void MergeCandsAndBestShortOne(bool update_score, bool sort_cands);
 };
 
 
@@ -286,7 +312,8 @@ public:
 
       for (int s = m_capacity; s < new_capacity; ++s)
       {
-        m_candidates[s].reserve(Config::maxCandsPerSeed);//we should never exceed this
+        m_candidates[s].reserve(Config::maxCandsPerSeed); //we should never exceed this
+        m_candidates[s].m_best_short_cand.setCandScore( getScoreWorstPossible() );
       }
 
       m_capacity = new_capacity;
@@ -305,6 +332,9 @@ public:
     m_candidates[m_size].m_state           = CombCandidate::Dormant;
     m_candidates[m_size].m_last_seed_layer = seed.getLastHitLyr();
     m_candidates[m_size].m_seed_type = seed.getSeedTypeForRanking();
+    Track &cand = m_candidates[m_size].back();
+    cand.setSeedTypeForRanking(seed.getSeedTypeForRanking());
+    cand.setCandScore         (getScoreCand(seed));
     ++m_size;
   }
 

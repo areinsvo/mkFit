@@ -71,8 +71,11 @@ public:
   void setupCMSSWMatching(const Event & ev, RedTrackVec & reducedCMSSW, LayIdxIDVecMapMap & cmsswHitIDMap);
 
   int getLastFoundHit(const int trackMCHitID, const int mcTrackID, const Event& ev);
+  int getMaskAssignment(const int refID);
 
-  void fillHitInfo(const Track& track, std::vector<int> & lyrs, std::vector<int> & idxs);
+  void fillMinHitInfo(const Track& track, std::vector<int> & lyrs, std::vector<int> & idxs);
+  void fillFullHitInfo(const Event& ev, const Track& track, std::vector<int> & lyrs, std::vector<int> & idxs, std::vector<int> & mcTkIDs,
+		       std::vector<float> & xs, std::vector<float> & ys, std::vector<float> & zs);
 
   void fillRecoTree(const Event& ev) override;
   void fillEfficiencyTree(const Event& ev) override;
@@ -141,7 +144,8 @@ public:
   // for efficiency and duplicate rate plots
   float x_mc_gen_eff_=0.,y_mc_gen_eff_=0.,z_mc_gen_eff_=0.;
   float pt_mc_gen_eff_=0.,phi_mc_gen_eff_=0.,eta_mc_gen_eff_=0.;
-  int   nHits_mc_eff_=0,nLayers_mc_eff_=0,lastlyr_mc_eff_=0;
+  float nLayers_mc_eff_;
+  int   nHits_mc_eff_=0,lastlyr_mc_eff_=0;
 
   // for getting last hit positions track ended up on
   float xhit_seed_eff_=0.,xhit_build_eff_=0.,xhit_fit_eff_=0.;
@@ -158,7 +162,7 @@ public:
   
   // for hit countings
   int   nHits_seed_eff_=0,nHits_build_eff_=0,nHits_fit_eff_=0;
-  int   nLayers_seed_eff_=0,nLayers_build_eff_=0,nLayers_fit_eff_=0;
+  float nLayers_seed_eff_=0,nLayers_build_eff_=0,nLayers_fit_eff_=0;
   int   nHitsMatched_seed_eff_=0,nHitsMatched_build_eff_=0,nHitsMatched_fit_eff_=0;
   float fracHitsMatched_seed_eff_=0,fracHitsMatched_build_eff_=0,fracHitsMatched_fit_eff_=0;
   int   lastlyr_seed_eff_=0,lastlyr_build_eff_=0,lastlyr_fit_eff_=0;
@@ -178,6 +182,10 @@ public:
   // hit info
   std::vector<int> hitlyrs_mc_eff_,hitlyrs_seed_eff_,hitlyrs_build_eff_,hitlyrs_fit_eff_;
   std::vector<int> hitidxs_mc_eff_,hitidxs_seed_eff_,hitidxs_build_eff_,hitidxs_fit_eff_;
+  std::vector<int> hitmcTkIDs_mc_eff_,hitmcTkIDs_seed_eff_,hitmcTkIDs_build_eff_,hitmcTkIDs_fit_eff_;
+  std::vector<float> hitxs_mc_eff_,hitxs_seed_eff_,hitxs_build_eff_,hitxs_fit_eff_;
+  std::vector<float> hitys_mc_eff_,hitys_seed_eff_,hitys_build_eff_,hitys_fit_eff_;
+  std::vector<float> hitzs_mc_eff_,hitzs_seed_eff_,hitzs_build_eff_,hitzs_fit_eff_;
 
   // Fake Rate tree and variables
   std::unique_ptr<TTree> frtree_;
@@ -199,7 +207,7 @@ public:
   float eta_seed_FR_=0.,eta_build_FR_=0.,eta_fit_FR_=0.,eeta_seed_FR_=0.,eeta_build_FR_=0.,eeta_fit_FR_=0.;
     
   int   nHits_seed_FR_=0,nHits_build_FR_=0,nHits_fit_FR_=0;
-  int   nLayers_seed_FR_=0,nLayers_build_FR_=0,nLayers_fit_FR_=0;
+  float nLayers_seed_FR_=0,nLayers_build_FR_=0,nLayers_fit_FR_=0;
   int   nHitsMatched_seed_FR_=0,nHitsMatched_build_FR_=0,nHitsMatched_fit_FR_=0;
   float fracHitsMatched_seed_FR_=0,fracHitsMatched_build_FR_=0,fracHitsMatched_fit_FR_=0;
   int   lastlyr_seed_FR_=0,lastlyr_build_FR_=0,lastlyr_fit_FR_=0;
@@ -214,7 +222,7 @@ public:
   int   mcmask_seed_FR_=0,mcmask_build_FR_=0,mcmask_fit_FR_=0;
   int   mcTSmask_seed_FR_=0,mcTSmask_build_FR_=0,mcTSmask_fit_FR_=0;
   int   nHits_mc_seed_FR_=0,nHits_mc_build_FR_=0,nHits_mc_fit_FR_=0;
-  int   nLayers_mc_seed_FR_=0,nLayers_mc_build_FR_=0,nLayers_mc_fit_FR_=0;
+  float nLayers_mc_seed_FR_=0,nLayers_mc_build_FR_=0,nLayers_mc_fit_FR_=0;
   int   lastlyr_mc_seed_FR_=0,lastlyr_mc_build_FR_=0,lastlyr_mc_fit_FR_=0;
 
   float helixchi2_seed_FR_=0.,helixchi2_build_FR_=0.,helixchi2_fit_FR_=0.;
@@ -225,11 +233,15 @@ public:
   // hit info
   std::vector<int> hitlyrs_seed_FR_,hitlyrs_build_FR_,hitlyrs_fit_FR_,hitlyrs_mc_seed_FR_,hitlyrs_mc_build_FR_,hitlyrs_mc_fit_FR_;
   std::vector<int> hitidxs_seed_FR_,hitidxs_build_FR_,hitidxs_fit_FR_,hitidxs_mc_seed_FR_,hitidxs_mc_build_FR_,hitidxs_mc_fit_FR_;
+  std::vector<int> hitmcTkIDs_seed_FR_,hitmcTkIDs_build_FR_,hitmcTkIDs_fit_FR_,hitmcTkIDs_mc_seed_FR_,hitmcTkIDs_mc_build_FR_,hitmcTkIDs_mc_fit_FR_;
+  std::vector<float> hitxs_seed_FR_,hitxs_build_FR_,hitxs_fit_FR_,hitxs_mc_seed_FR_,hitxs_mc_build_FR_,hitxs_mc_fit_FR_;
+  std::vector<float> hitys_seed_FR_,hitys_build_FR_,hitys_fit_FR_,hitys_mc_seed_FR_,hitys_mc_build_FR_,hitys_mc_fit_FR_;
+  std::vector<float> hitzs_seed_FR_,hitzs_build_FR_,hitzs_fit_FR_,hitzs_mc_seed_FR_,hitzs_mc_build_FR_,hitzs_mc_fit_FR_;
 
   // Configuration tree
   std::unique_ptr<TTree> configtree_;
   int   Ntracks_=0,Nevents_=0;
-  int   nLayers_=0;
+  float nLayers_=0;
   float fRadialSpacing_=0.,fRadialExtent_=0.,fInnerSensorSize_=0.,fOuterSensorSize_=0.;
   float fEtaDet_=0.,fPhiFactor_=0.;
   int   nPhiPart_=0,nEtaPart_=0;
@@ -248,7 +260,8 @@ public:
 
   float x_cmssw_ceff_=0.,y_cmssw_ceff_=0.,z_cmssw_ceff_=0.;
   float pt_cmssw_ceff_=0.,phi_cmssw_ceff_=0.,eta_cmssw_ceff_=0.;
-  int   nHits_cmssw_ceff_=0,nLayers_cmssw_ceff_=0,lastlyr_cmssw_ceff_=0;
+  float nLayers_cmssw_ceff_=0;
+  int   nHits_cmssw_ceff_=0,lastlyr_cmssw_ceff_=0;
 
   // build
   int   seedID_build_ceff_=0,mcTrackID_build_ceff_=0;
@@ -261,7 +274,8 @@ public:
   float x_mc_build_ceff_=0.,y_mc_build_ceff_=0.,z_mc_build_ceff_=0.;
   float pt_mc_build_ceff_=0.,phi_mc_build_ceff_=0.,eta_mc_build_ceff_=0.;
 
-  int   nHits_build_ceff_=0,nLayers_build_ceff_=0,nHitsMatched_build_ceff_=0,lastlyr_build_ceff_=0;
+  float nLayers_build_ceff_=0;
+  int   nHits_build_ceff_=0,nHitsMatched_build_ceff_=0,lastlyr_build_ceff_=0;
   float fracHitsMatched_build_ceff_=0;
 
   float xhit_build_ceff_=0.,yhit_build_ceff_=0.,zhit_build_ceff_=0.;
@@ -284,7 +298,8 @@ public:
   float x_mc_fit_ceff_=0.,y_mc_fit_ceff_=0.,z_mc_fit_ceff_=0.;
   float pt_mc_fit_ceff_=0.,phi_mc_fit_ceff_=0.,eta_mc_fit_ceff_=0.;
 
-  int   nHits_fit_ceff_=0,nLayers_fit_ceff_=0,nHitsMatched_fit_ceff_=0,lastlyr_fit_ceff_=0;
+  float nLayers_fit_ceff_=0;
+  int   nHits_fit_ceff_=0,nHitsMatched_fit_ceff_=0,lastlyr_fit_ceff_=0;
   float fracHitsMatched_fit_ceff_=0;
 
   float xhit_fit_ceff_=0.,yhit_fit_ceff_=0.,zhit_fit_ceff_=0.;
@@ -314,7 +329,8 @@ public:
   float x_mc_cFR_=0.,y_mc_cFR_=0.,z_mc_cFR_=0.;
   float pt_mc_cFR_=0.,phi_mc_cFR_=0.,eta_mc_cFR_=0.;
 
-  int   nHits_build_cFR_=0,nLayers_build_cFR_=0,nHitsMatched_build_cFR_=0,lastlyr_build_cFR_=0;
+  float nLayers_build_cFR_=0;
+  int   nHits_build_cFR_=0,nHitsMatched_build_cFR_=0,lastlyr_build_cFR_=0;
   float fracHitsMatched_build_cFR_=0;
 
   float xhit_build_cFR_=0.,yhit_build_cFR_=0.,zhit_build_cFR_=0.;
@@ -331,7 +347,8 @@ public:
   int   seedID_cmssw_build_cFR_=0;
   float x_cmssw_build_cFR_=0.,y_cmssw_build_cFR_=0.,z_cmssw_build_cFR_=0.;
   float pt_cmssw_build_cFR_=0.,phi_cmssw_build_cFR_=0.,eta_cmssw_build_cFR_=0.;
-  int   nHits_cmssw_build_cFR_=0,nLayers_cmssw_build_cFR_=0,lastlyr_cmssw_build_cFR_=0;
+  float nLayers_cmssw_build_cFR_=0;
+  int   nHits_cmssw_build_cFR_=0,lastlyr_cmssw_build_cFR_=0;
 
   // fit info
   int   cmsswID_fit_cFR_=0,cmsswmask_fit_cFR_=0;
@@ -340,7 +357,8 @@ public:
   float phi_fit_cFR_=0.,ephi_fit_cFR_=0.;
   float eta_fit_cFR_=0.,eeta_fit_cFR_=0.;
 
-  int   nHits_fit_cFR_=0,nLayers_fit_cFR_=0,nHitsMatched_fit_cFR_=0,lastlyr_fit_cFR_=0;
+  float nLayers_fit_cFR_=0;
+  int   nHits_fit_cFR_=0,nHitsMatched_fit_cFR_=0,lastlyr_fit_cFR_=0;
   float fracHitsMatched_fit_cFR_=0;
 
   float xhit_fit_cFR_=0.,yhit_fit_cFR_=0.,zhit_fit_cFR_=0.;
@@ -357,7 +375,8 @@ public:
   int   seedID_cmssw_fit_cFR_=0;
   float x_cmssw_fit_cFR_=0.,y_cmssw_fit_cFR_=0.,z_cmssw_fit_cFR_=0.;
   float pt_cmssw_fit_cFR_=0.,phi_cmssw_fit_cFR_=0.,eta_cmssw_fit_cFR_=0.;
-  int   nHits_cmssw_fit_cFR_=0,nLayers_cmssw_fit_cFR_=0,lastlyr_cmssw_fit_cFR_=0;
+  float nLayers_cmssw_fit_cFR_=0;
+  int   nHits_cmssw_fit_cFR_=0,lastlyr_cmssw_fit_cFR_=0;
 
   // hit info
   std::vector<int> hitlyrs_mc_cFR_,hitlyrs_build_cFR_,hitlyrs_cmssw_build_cFR_,hitlyrs_fit_cFR_,hitlyrs_cmssw_fit_cFR_;

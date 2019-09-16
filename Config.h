@@ -93,6 +93,7 @@ namespace Config
   // config on main + mkFit
   extern int nTracks; //defined in Config.cc by default or when reading events from file
   extern int nEvents;
+  extern bool loopOverFile;
   // XXXXMT: nTracks should be thrown out ... SMatrix and Event allocate some arrays on this
   // which can be wrong for real data or in multi-event environment
 
@@ -303,12 +304,13 @@ namespace Config
   extern    int maxHolesPerCand; // default: 2; cms  12 (should be reduced)
   extern    int maxCandsPerEtaBin;
 
+  extern    bool mtvLikeValidation;
+  extern    bool mtvRequireSeeds;
   // Selection of simtracks from CMSSW. Used in Event::clean_cms_simtracks() and MkBuilder::prep_cmsswtracks()
-  constexpr int   cmsSelMinLayers = 12;
-  constexpr float cmsSelMinPt     = 0.5;
+  extern    int   cmsSelMinLayers;
 
   // config on validation
-  constexpr int nMinFoundHits = 10;
+  extern int nMinFoundHits;
   constexpr float minCMSSWMatchChi2[6] = {100,100,50,50,30,20};
   constexpr float minCMSSWMatchdPhi[6] = {0.2,0.2,0.1,0.05,0.01,0.005};
   extern bool quality_val;
@@ -324,6 +326,14 @@ namespace Config
   extern bool tryToSaveSimInfo;
   extern matchOpts cmsswMatchingFW;
   extern matchOpts cmsswMatchingBK;
+
+  // config on duplicate removal
+  extern bool useHitsForDuplicates;
+  extern bool removeDuplicates;
+  extern float maxdPhi;
+  extern float maxdPt;
+  extern float maxdEta;
+  extern float minFracHitsShared;
 
   // config on seed cleaning
   constexpr int minNHits_seedclean = 4;
@@ -350,8 +360,8 @@ namespace Config
   constexpr float track_ptlow = 0.9;
 
   // sorting config (bonus,penalty)
-  constexpr float validHitBonus_ = 2.5;
-  constexpr float missingHitPenalty_ = 20.0;
+  constexpr float validHitBonus_ = 7.5;//cmssw bonus = 2.5
+  constexpr float missingHitPenalty_ = 5.0;//cmssw penalty = 20
   constexpr float maxChi2ForRanking_ = 819.2f; // (=0.5f*0.1f*pow(2,14);)
 
   // Threading

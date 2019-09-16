@@ -10,6 +10,7 @@ namespace Config
 
   int nTracks = 10000;
   int nEvents = 20;
+  bool loopOverFile = false;
 
   int nTotalLayers = -1;
 
@@ -84,6 +85,18 @@ namespace Config
   bool  tryToSaveSimInfo = false;
   matchOpts cmsswMatchingFW = hitBased;
   matchOpts cmsswMatchingBK = trkParamBased;
+
+  bool  removeDuplicates = false;
+  bool  useHitsForDuplicates = true;
+  float maxdPhi = 0.1;
+  float maxdPt  = 0.05;
+  float maxdEta = 0.2;
+  float minFracHitsShared = 0.75;
+
+  bool mtvLikeValidation = false;
+  bool mtvRequireSeeds = false;
+  int  cmsSelMinLayers = 12;
+  int  nMinFoundHits = 10;
 
   bool  kludgeCmsHitErrors = false;
   bool  backwardFit = false;

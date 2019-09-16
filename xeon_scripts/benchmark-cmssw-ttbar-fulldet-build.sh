@@ -6,13 +6,15 @@
 
 ben_arch=${1} # SNB, KNL, SKL-SP
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
+useARCH=${3:-0}
+lnxuser=${4:-${USER}}
 
 ###################
 ## Configuration ##
 ###################
 
 ## Source environment and common variables
-source xeon_scripts/common-variables.sh ${suite}
+source xeon_scripts/common-variables.sh ${suite} ${useARCH} ${lnxuser}
 source xeon_scripts/init-env.sh
 
 ## Platform specific settings
@@ -36,6 +38,24 @@ then
     declare -a nevs=("1" "2" "4" "8" "16" "32" "64" "128")
 elif [[ "${ben_arch}" == "SKL-SP" ]]
 then
+    mOpt="-j 32 AVX_512:=1"
+    dir=/data2/slava77/samples
+    maxth=64
+    maxvu=16
+    declare -a nths=("1" "2" "4" "8" "16" "32" "48" "64")
+    declare -a nvus=("1" "2" "4" "8" "16")
+    declare -a nevs=("1" "2" "4" "8" "16" "32" "64")
+elif [[ "${ben_arch}" == "LNX-G" ]]
+then 
+    mOpt="-j 32 AVX_512:=1"
+    dir=/data2/slava77/samples
+    maxth=64
+    maxvu=16
+    declare -a nths=("1" "2" "4" "8" "16" "32" "48" "64")
+    declare -a nvus=("1" "2" "4" "8" "16")
+    declare -a nevs=("1" "2" "4" "8" "16" "32" "64")
+elif [[ "${ben_arch}" == "LNX-S" ]]
+then 
     mOpt="-j 32 AVX_512:=1"
     dir=/data2/slava77/samples
     maxth=64
@@ -95,7 +115,7 @@ do
 		    then
 			nproc=$(( ${nevents} * ${nev} ))
 			echo "${oBase}: Benchmark [nTH:${nth}, nVU:${maxvu}int, nEV:${nev}]"
-			${bExe} --silent --num-thr-ev ${nev} --num-events ${nproc} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_NEV${nev}.txt
+			${bExe} --silent --num-thr-ev ${nev} --num-events ${nproc} --remove-dup >& log_${oBase}_NVU${maxvu}int_NTH${nth}_NEV${nev}.txt
 		    fi
 		done
 	    fi
@@ -105,7 +125,7 @@ do
 	    if (( ${nth} == ${maxth} )) && [[ "${check_text}" == "true" ]]
 	    then
 		echo "${oBase}: Text dump for plots [nTH:${nth}, nVU:${maxvu}int]"
-		${bExe} --dump-for-plots --quality-val --read-cmssw-tracks --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_${dump}.txt
+		${bExe} --dump-for-plots --quality-val --read-cmssw-tracks --num-events ${nevents} --remove-dup >& log_${oBase}_NVU${maxvu}int_NTH${nth}_${dump}.txt
 	    fi
 	done
     done
@@ -141,3 +161,6 @@ done
 
 ## Final cleanup
 make distclean ${mOpt}
+
+## Final message
+echo "Finished compute benchmarks on ${ben_arch}!"

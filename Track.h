@@ -312,8 +312,6 @@ public:
 
   HitOnTrack* BeginHitsOnTrack_nc() { return hitsOnTrk_; }
 
-  void sortHitsByLayer();
-
   void fillEmptyLayers() {
     for (int h = lastHitIdx_ + 1; h < Config::nMaxTrkHits; h++) {
       setHitIdxLyr(h, -1, -1);
@@ -355,36 +353,46 @@ public:
     return n;
   }
 
-  int nSeedLyrHits() const
+  int nMissingHits() const
   {
-    int nSeedHits = 0;
-    for (int ihit = 0; ihit <= lastHitIdx_ ; ++ihit)
+    int n = 0;
+    bool insideValid = false;
+    for (int i = lastHitIdx_; i >= 0; --i)
     {
-      int h_lyr = hitsOnTrk_[ihit].layer;
-      if (Config::TrkInfo.is_seed_lyr(h_lyr))
-      {
-	nSeedHits++;
-      }
+      if (hitsOnTrk_[i].index >= 0) insideValid = true;
+      if (insideValid && hitsOnTrk_[i].index == -1) ++n;
     }
-    return nSeedHits;
+    return n;
   }
 
-  int nUniqueLayers(const bool skipSeedLyrs) const
+  int nUniqueLayers() const 
   {
-    int lyr_cnt  =  0;
-    int prev_lyr = -1;
-    for (int ihit = 0; ihit <= lastHitIdx_ ; ++ihit)
+    // make local copy in vector: sort it in place
+    std::vector<HitOnTrack> tmp_hitsOnTrk(hitsOnTrk_,hitsOnTrk_+(lastHitIdx_+1)); 
+    std::sort(tmp_hitsOnTrk.begin(), tmp_hitsOnTrk.end(),
+	      [](const auto & h1, const auto & h2) { return h1.layer < h2.layer; });
+
+    // local counters
+    auto lyr_cnt  =  0;
+    auto prev_lyr = -1;
+
+    // loop over copy of hitsOnTrk
+    for (auto ihit = 0; ihit <= lastHitIdx_; ++ihit)
     {
-      int h_lyr = hitsOnTrk_[ihit].layer;
-      if (skipSeedLyrs && Config::TrkInfo.is_seed_lyr(h_lyr)) continue;
-      if (h_lyr >= 0 && (hitsOnTrk_[ihit].index >= 0 || hitsOnTrk_[ihit].index == -9) && h_lyr != prev_lyr)
+      const auto & hot = tmp_hitsOnTrk[ihit];
+      const auto lyr = hot.layer;
+      const auto idx = hot.index;
+      if (lyr >= 0 && (idx >= 0 || idx == -9) && lyr != prev_lyr)
       {
         ++lyr_cnt;
-        prev_lyr = h_lyr;
+        prev_lyr = lyr;
       }
     }
     return lyr_cnt;
   }
+
+  // this method sorts the data member hitOnTrk_ and is ONLY to be used by sim track seeding
+  void sortHitsByLayer();
 
   const std::vector<int> foundLayers() const
   {
@@ -418,7 +426,7 @@ public:
         // Set to true when number of holes would exceed an external limit, Config::maxHolesPerCand.
         // XXXXMT Not used yet, -2 last hit idx is still used! Need to add it to MkFi**r classes.
         // Problem is that I have to carry bits in/out of the MkFinder, too.
-        bool stopped : 1;
+	bool stopped : 1;
 
         // Production type (most useful for sim tracks): 0, 1, 2, 3 for unset, signal, in-time PU, oot PU
         unsigned int prod_type : 2;
@@ -433,8 +441,11 @@ public:
 	// Candidate score for ranking (12 bits for value + 1 bit for sign):
 	int cand_score : 15;
 
+	//Whether or not the track matched to another track and had the lower cand score
+	bool duplicate : 1;
+
         // The rest, testing if mixing int and unsigned int is ok.
-        int          _some_free_bits_ : 4;
+        int          _some_free_bits_ : 3;
         unsigned int _more_free_bits_ : 6;
 
       };
@@ -462,7 +473,8 @@ public:
 
   void setCandScore(int r) { status_.cand_score = r; }
   int getCandScore() const { return status_.cand_score; }
-
+  void setDuplicateValue(bool d) {status_.duplicate = d;}
+  bool getDuplicateValue() const {return status_.duplicate;}
   enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
   ProdType prodType()  const { return ProdType(status_.prod_type); }
   void setProdType(ProdType ptyp) { status_.prod_type = static_cast<unsigned int>(ptyp); }
@@ -518,6 +530,11 @@ inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const
   return sortByScoreCand(cand1.first,cand2.first);
 }
 
+inline int getScoreWorstPossible()
+{
+  return -0x3FFF; // 14 bits, all ones.
+}
+
 inline int getScoreCalc(const unsigned int seedtype,
                         const int nfoundhits,
                         const int nmisshits,
@@ -530,6 +547,11 @@ inline int getScoreCalc(const unsigned int seedtype,
   //if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
   int score = 0;
   float score_ = 0.f;
+  ////// V2 of candidate score (simplified score, after fix for counts of # missing hits):
+  score_ = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+  if(pt<0.9f && seedtype==2) score_ -= 0.5f*(Config::validHitBonus_)*nfoundhits;
+  /*
+  ////// V0 of candidate score (before fix for counts of # missing hits):
   // For high pT central tracks: double valid hit bonus
   if(seedtype==1){
     score_ = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
@@ -548,6 +570,28 @@ inline int getScoreCalc(const unsigned int seedtype,
     if(pt<0.9f) score_ -= 0.5f*Config::validHitBonus_*nfoundhits;
     else if(nfoundhits>8) score_ += Config::validHitBonus_*nfoundhits;
   }
+  */
+  ////// V1 of candidate score (after fix for counts of # missing hits):
+  // For high pT central tracks: 4x valid hit bonus and 0.25x missing hit penalty
+  /*
+  if(seedtype==1){
+    score_ = (Config::validHitBonus_*4.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits*0.25f - chi2;
+    if(pt<0.9f) score_ -= 0.25f*(Config::validHitBonus_)*nfoundhits;
+    if(nfoundhits>8) score_ += (Config::validHitBonus_*2.0f)*nfoundhits;
+  }
+  // For low pT endcap tracks: 2x valid hit bonus & 0.25x missing hit penalty
+  else if(seedtype==2){
+    score_ = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits*0.25f - chi2;
+    if(pt<0.9f) score_ -= 0.25f*(Config::validHitBonus_*0.5f)*nfoundhits;
+    if(nfoundhits>8) score_ += (Config::validHitBonus_*1.0f)*nfoundhits;
+  }
+  // For all other tracks: 4x cmssw bonus and unchanged missing hit penalty
+  else{
+    score_ = (Config::validHitBonus_*4.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+    if(pt<0.9f) score_ -= 0.2f*(Config::validHitBonus_)*nfoundhits;
+    if(nfoundhits>8) score_ += (Config::validHitBonus_)*nfoundhits;
+  }
+  */
   score = (int)(floor(10.f * score_ + 0.5));
   return score;
 }
@@ -556,7 +600,7 @@ inline int getScoreCand(const Track& cand1)
 {
   unsigned int seedtype = cand1.getSeedTypeForRanking();
   int nfoundhits = cand1.nFoundHits();
-  int nmisshits = cand1.nTotalHits()-cand1.nFoundHits();
+  int nmisshits = cand1.nMissingHits();
   float pt = cand1.pT();
   float chi2 = cand1.chi2();
   // Do not allow for chi2<0 in score calculation
@@ -612,7 +656,7 @@ public:
   TrackExtra() : seedID_(std::numeric_limits<int>::max()) {}
   TrackExtra(int seedID) : seedID_(seedID) {}
 
-  int  modifyRefTrackID(const int foundHits, const int minHits, const TrackVec& reftracks, const int trueID, int refTrackID);
+  int  modifyRefTrackID(const int foundHits, const int minHits, const TrackVec& reftracks, const int trueID, const int duplicate, int refTrackID);
   void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks, 
 			const bool isSeed, const bool isPure);
   void setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks,
