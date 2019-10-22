@@ -1521,7 +1521,7 @@ void TTreeValidation::fillRecoTree(const Event& ev)
 	eeta_build_reco_.emplace_back(buildtrack.emomEta());
 
 	nHits_build_reco_.emplace_back(buildtrack.nFoundHits());
-	nLayers_build_reco_.emplace_back(buildtrack.nUniqueLayers(false));
+	nLayers_build_reco_.emplace_back(buildtrack.nUniqueLayers());
 	nHitsMatched_build_reco_.emplace_back(buildextra.nHitsMatched());
 	fracHitsMatched_build_reco_.emplace_back(buildextra.fracHitsMatched());
 	lastlyr_build_reco_.emplace_back(buildtrack.getLastFoundHitLyr());
@@ -1529,7 +1529,7 @@ void TTreeValidation::fillRecoTree(const Event& ev)
 	if (Config::keepHitInfo){
 	  std::vector<int> lyrs;
 	  std::vector<int> idxs;
-	  TTreeValidation::fillHitInfo(buildtrack,lyrs,idxs);
+	  TTreeValidation::fillMinHitInfo(buildtrack,lyrs,idxs);
 	  hitlyrs_reco_.emplace_back(lyrs);
 	  hitidxs_reco_.emplace_back(idxs);
 	}
