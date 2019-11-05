@@ -68,7 +68,7 @@ void TTreeValidation::initializeRecoTree()
   recotree_->Branch("fracHitsMatched",&fracHitsMatched_build_reco_);
   recotree_->Branch("lastlyr",&lastlyr_build_reco_);
 
-  if (Config::keepHitInfo)
+  if (Config::keepRecoHitInfo)
   {
     recotree_->Branch("hitlyrs",&hitlyrs_reco_);
     recotree_->Branch("hitidxs",&hitidxs_reco_);
@@ -1483,56 +1483,52 @@ void TTreeValidation::fillRecoTree(const Event& ev)
   fracHitsMatched_build_reco_.clear();
   lastlyr_build_reco_.clear();
 
-  if (Config::keepHitInfo)
+  if (Config::keepRecoHitInfo)
     {
       hitlyrs_reco_.clear();
       hitidxs_reco_.clear();
     }
 
-  for (const auto& simtrack : evt_sim_tracks)
-  {
-    int mcTrack = simtrack.label();
-    if (simToBuildMap_.count(mcTrack) && simtrack.isFindable())
+  for (const auto& buildtrack: evt_build_tracks)
     {
-      for (int i = 0; i < simToBuildMap_[mcTrack].size();i++)
-      {
+      const auto& buildextra = evt_build_extras[buildtrack.label()];
+      int mcTrack = buildextra.mcTrackID();
+      mcID_reco_.emplace_back(mcTrack);
 
-	mcID_reco_.emplace_back(mcTrack);
-	bool duplicated = (simToBuildMap_[mcTrack].size() >1);
-	isDuplicate_.emplace_back(duplicated);
-	const auto& buildtrack = evt_build_tracks[simToBuildMap_[mcTrack][i]]; //returns build track matched to sim track
-	const auto& buildextra = evt_build_extras[buildtrack.label()];
+      bool duplicated = buildextra.isDuplicate();
+      isDuplicate_.emplace_back(duplicated);
 
-	seedID_reco_.emplace_back(buildextra.seedID());
+      seedID_reco_.emplace_back(buildextra.seedID());
 
-	const Hit& lasthit = evt_layer_hits[buildtrack.getLastFoundHitLyr()][buildtrack.getLastFoundHitIdx()];
-	xhit_build_reco_.emplace_back(lasthit.x());
-	yhit_build_reco_.emplace_back(lasthit.y());
-	zhit_build_reco_.emplace_back(lasthit.z());
+      const Hit& lasthit = evt_layer_hits[buildtrack.getLastFoundHitLyr()][buildtrack.getLastFoundHitIdx()];
+      xhit_build_reco_.emplace_back(lasthit.x());
+      yhit_build_reco_.emplace_back(lasthit.y());
+      zhit_build_reco_.emplace_back(lasthit.z());
 
-	pt_build_reco_.emplace_back(buildtrack.pT());
-	ept_build_reco_.emplace_back(buildtrack.epT());
-	phi_build_reco_.emplace_back(buildtrack.momPhi());
-	ephi_build_reco_.emplace_back(buildtrack.emomPhi());
-	eta_build_reco_.emplace_back(buildtrack.momEta());
-	eeta_build_reco_.emplace_back(buildtrack.emomEta());
+      pt_build_reco_.emplace_back(buildtrack.pT());
+      ept_build_reco_.emplace_back(buildtrack.epT());
+      phi_build_reco_.emplace_back(buildtrack.momPhi());
+      ephi_build_reco_.emplace_back(buildtrack.emomPhi());
+      eta_build_reco_.emplace_back(buildtrack.momEta());
+      eeta_build_reco_.emplace_back(buildtrack.emomEta());
 
-	nHits_build_reco_.emplace_back(buildtrack.nFoundHits());
-	nLayers_build_reco_.emplace_back(buildtrack.nUniqueLayers());
-	nHitsMatched_build_reco_.emplace_back(buildextra.nHitsMatched());
-	fracHitsMatched_build_reco_.emplace_back(buildextra.fracHitsMatched());
-	lastlyr_build_reco_.emplace_back(buildtrack.getLastFoundHitLyr());
+      nHits_build_reco_.emplace_back(buildtrack.nFoundHits());
+      nLayers_build_reco_.emplace_back(buildtrack.nUniqueLayers());
+      nHitsMatched_build_reco_.emplace_back(buildextra.nHitsMatched());
+      fracHitsMatched_build_reco_.emplace_back(buildextra.fracHitsMatched());
+      lastlyr_build_reco_.emplace_back(buildtrack.getLastFoundHitLyr());
 
-	if (Config::keepHitInfo){
-	  std::vector<int> lyrs;
-	  std::vector<int> idxs;
-	  TTreeValidation::fillMinHitInfo(buildtrack,lyrs,idxs);
-	  hitlyrs_reco_.emplace_back(lyrs);
-	  hitidxs_reco_.emplace_back(idxs);
-	}
-      }
-    }
-  }
+      if (Config::keepRecoHitInfo){
+	  //	  std::cout<<"Fill hit info: ";
+	std::vector<int> lyrs;
+	std::vector<int> idxs;
+	TTreeValidation::fillMinHitInfo(buildtrack,lyrs,idxs);
+	hitlyrs_reco_.emplace_back(lyrs);
+	hitidxs_reco_.emplace_back(idxs);
+	  //	  std::cout<<lyrs.size() << ", " << idxs.size() << std::endl;
+      } //end of if keepHitInfo
+
+    } //end of loop over buildtracks
   recotree_->Fill();
 }
 
@@ -2050,7 +2046,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     score_seed_FR_   = seedtrack.score();
 
     if (Config::keepHitInfo) TTreeValidation::fillFullHitInfo(ev,seedtrack,hitlyrs_seed_FR_,hitidxs_seed_FR_,hitmcTkIDs_seed_FR_,
-							      hitxs_seed_FR_,hitys_seed_FR_,hitzs_seed_FR_);
+                                                              hitxs_seed_FR_,hitys_seed_FR_,hitzs_seed_FR_);
 
     // sim info for seed track
     mcID_seed_FR_   = seedextra.mcTrackID();

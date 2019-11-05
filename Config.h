@@ -318,6 +318,7 @@ namespace Config
   extern bool inclusiveShorts;
   extern bool keepHitInfo;
   extern bool keepRecoInfo;
+  extern bool keepRecoHitInfo;
   extern bool tryToSaveSimInfo;
   extern matchOpts cmsswMatchingFW;
   extern matchOpts cmsswMatchingBK;
