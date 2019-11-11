@@ -500,11 +500,14 @@ void test_standard()
                t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
       }
 
-      // not protected by a mutex, may be inacccurate for multiple events in flight;
-      // probably should convert to a scaled long so can use std::atomic<Integral>
-      for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
-      if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
-    } //end of loop over events 
+      {
+        static std::mutex sum_up_lock;
+        std::lock_guard<std::mutex> locker(sum_up_lock);
+
+        for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
+        if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
+      }
+    }
     }
   //  }, tbb::simple_partitioner()); //end of tbb parallel for
 
@@ -669,6 +672,7 @@ int main(int argc, const char *argv[])
 	"                             must enable: --dump-for-plots\n"
 	"  --dump-for-plots         make shell printouts for plots (def: %s)\n"
         "  --mtv-like-val           configure validation to emulate CMSSW MultiTrackValidator (MTV) (def: %s)\n"
+	"  --mtv-require-seeds           configure validation to emulate MTV but require sim tracks to be matched to seeds (def: %s)\n"
 	"\n"
 	" **ROOT based options\n"
         "  --sim-val-for-cmssw      enable ROOT based validation for CMSSW tracks with simtracks as reference [eff, FR, DR] (def: %s)\n"
@@ -776,6 +780,7 @@ int main(int argc, const char *argv[])
         b2a(Config::quality_val),
         b2a(Config::dumpForPlots),
         b2a(Config::mtvLikeValidation),
+	b2a(Config::mtvRequireSeeds),
 
         b2a(Config::sim_val_for_cmssw),
         b2a(Config::sim_val),
@@ -1001,6 +1006,13 @@ int main(int argc, const char *argv[])
       Config::mtvLikeValidation = true;
       Config::cmsSelMinLayers = 0;
       Config::nMinFoundHits = 0;
+    }
+    else if (*i == "--mtv-require-seeds")
+    {
+	Config::mtvLikeValidation = true;
+	Config::cmsSelMinLayers = 0;
+	Config::nMinFoundHits = 0;
+	Config::mtvRequireSeeds = true;
     }
     else if (*i == "--sim-val-for-cmssw")
     {

@@ -63,17 +63,17 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>     & track
 
   for (int i = beg, imp = 0; i < end; ++i, ++imp)
   {
-    const Track &trk = tracks[idxs[i].first][idxs[i].second];
+    const TrackCand &trk = tracks[idxs[i].first][idxs[i].second];
 
     copy_in(trk, imp, iI);
-    
+
     SeedType(imp, 0, 0) = tracks[idxs[i].first].m_seed_type;
     SeedIdx(imp, 0, 0) = idxs[i].first;
     CandIdx(imp, 0, 0) = idxs[i].second;
   }
 }
 
-void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>                       & tracks,
+void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>             & tracks,
                                     const std::vector<std::pair<int,IdxChi2List>>& idxs,
                                     int beg, int end, bool inputProp)
 {
@@ -86,7 +86,7 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>            
 
   for (int i = beg, imp = 0; i < end; ++i, ++imp)
   {
-    const Track &trk = tracks[idxs[i].first][idxs[i].second.trkIdx];
+    const TrackCand &trk = tracks[idxs[i].first][idxs[i].second.trkIdx];
 
     copy_in(trk, imp, iI);
 
@@ -374,25 +374,24 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
 	  if (Config::usePhiQArrays)
 	  {
-            if (XHitSize[itrack] >= MPlexHitIdxMax) continue;
+            if (XHitSize[itrack] >= MPlexHitIdxMax) break;
 
             const float ddq   =       std::abs(q   - L.m_hit_qs[hi]);
+            if (ddq >= dq) continue;
             const float ddphi = cdist(std::abs(phi - L.m_hit_phis[hi]));
+            if (ddphi >= dphi) continue;
             
-            dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
-                    qi, pi, pb, hi,
-                    L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
-                    (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
+            // dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
+            //         qi, pi, pb, hi,
+            //         L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
+            //         (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
             
             // MT: Removing extra check gives full efficiency ...
             //     and means our error estimations are wrong!
             // Avi says we should have *minimal* search windows per layer.
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
-            if (ddq < dq && ddphi < dphi)
-            {
-              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
-            }
+	    XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
 	  }
 	  else
 	  {
@@ -414,15 +413,12 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 // AddBestHit - Best Hit Track Finding
 //==============================================================================
 
-//#define NO_PREFETCH
-//#define NO_GATHER
-
 void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
                           const FindingFoos &fnd_foos)
 {
   // debug = true;
 
-  MatriplexHitPacker mhp(layer_of_hits.m_hits[0]);
+  MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
   float minChi2[NN];
   int   bestHit[NN];
@@ -431,25 +427,15 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
   // std::fill_n(minChi2, NN, Config::chi2Cut);
   // std::fill_n(bestHit, NN, -1);
 
-  const char *varr      = (char*) layer_of_hits.m_hits;
-
   int maxSize = 0;
 
   // Determine maximum number of hits for tracks in the collection.
-  // At the same time prefetch the first set of hits to L1 and the second one to L2.
   for (int it = 0; it < NN; ++it)
   {
     if (it < N_proc)
     {
       if (XHitSize[it] > 0)
       {
-#ifndef NO_PREFETCH
-        _mm_prefetch(varr + XHitArr.At(it, 0, 0) * sizeof(Hit), _MM_HINT_T0);
-	if (XHitSize[it] > 1)
-	{
-	  _mm_prefetch(varr + XHitArr.At(it, 1, 0) * sizeof(Hit), _MM_HINT_T1);
-        }
-#endif
         maxSize = std::max(maxSize, XHitSize[it]);
       }
     }
@@ -458,8 +444,6 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     minChi2[it] = Config::chi2Cut;
   }
 
-// Has basically no effect, it seems.
-//#pragma noprefetch
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
     //fixme what if size is zero???
@@ -471,56 +455,16 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     {
       if (hit_cnt < XHitSize[itrack])
       {
-         mhp.AddInputAt(itrack, layer_of_hits.m_hits[ XHitArr.At(itrack, hit_cnt, 0) ]);
+        mhp.AddInputAt(itrack, layer_of_hits.GetHit(XHitArr.At(itrack, hit_cnt, 0)));
       }
     }
-
-#ifndef NO_PREFETCH
-    // Prefetch to L2 the hits we'll process after two loops iterations.
-    // Ideally this would be initiated before coming here, for whole bunch_of_hits.m_hits vector.
-    for (int itrack = 0; itrack < N_proc; ++itrack)
-    {
-      if (hit_cnt + 2 < XHitSize[itrack])
-      {
-        _mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+2, 0)*sizeof(Hit), _MM_HINT_T1);
-      }
-    }
-#endif
-
-#ifdef NO_GATHER
-
-#pragma omp simd
-    for (int itrack = 0; itrack < N_proc; ++itrack)
-    {
-      if (hit_cnt < XHitSize[itrack])
-      {
-        const Hit &hit = layer_of_hits.m_hits[XHitArr.At(itrack, hit_cnt, 0)];
-        msErr.CopyIn(itrack, hit.errArray());
-        msPar.CopyIn(itrack, hit.posArray());
-      }
-    }
-
-#else //NO_GATHER
 
     mhp.Pack(msErr, msPar);
-
-#endif //NO_GATHER
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
     (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
                                    outChi2, N_proc, Config::finding_intra_layer_pflags);
-
-#ifndef NO_PREFETCH
-    // Prefetch to L1 the hits we'll process in the next loop iteration.
-    for (int itrack = 0; itrack < N_proc; ++itrack)
-    {
-      if (hit_cnt + 1 < XHitSize[itrack])
-      {
-        _mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+1, 0)*sizeof(Hit), _MM_HINT_T0);
-      }
-    }
-#endif
 
     //update best hit in case chi2<minChi2
 #pragma omp simd
@@ -538,15 +482,6 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
       }
     }
   } // end loop over hits
-
-  //copy in MkFitter the hit with lowest chi2
-  for (int itrack = 0; itrack < N_proc; ++itrack)
-  {
-    if (bestHit[itrack] >= 0)
-    {
-      _mm_prefetch( (const char*) & layer_of_hits.m_hits[ bestHit[itrack] ], _MM_HINT_T0);
-    }
-  }
 
   //#pragma omp simd
   for (int itrack = 0; itrack < N_proc; ++itrack)
@@ -571,7 +506,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     //fixme decide what to do in case no hit found
     if (bestHit[itrack] >= 0)
     {
-      const Hit  &hit  = layer_of_hits.m_hits[ bestHit[itrack] ];
+      const Hit  &hit  = layer_of_hits.GetHit( bestHit[itrack] );
       const float chi2 = minChi2[itrack];
 
       dprint("ADD BEST HIT FOR TRACK #" << itrack << std::endl
@@ -621,31 +556,23 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 //==============================================================================
 
 void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
-                              std::vector<std::vector<Track>>& tmp_candidates,
+                              std::vector<std::vector<TrackCand>>& tmp_candidates,
                               const int offset, const int N_proc,
                               const FindingFoos &fnd_foos)
 {
   // bool debug = true;
 
-  MatriplexHitPacker mhp(layer_of_hits.m_hits[0]);
-
-  const char *varr = (char*) layer_of_hits.m_hits;
+  MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
   int maxSize = 0;
 
   // Determine maximum number of hits for tracks in the collection.
-  // At the same time prefetch the first set of hits to L1 and the second one to L2.
   for (int it = 0; it < NN; ++it)
   {
     if (it < N_proc)
     {
       if (XHitSize[it] > 0)
       {
-	_mm_prefetch(varr + XHitArr.At(it, 0, 0) * sizeof(Hit), _MM_HINT_T0);
-	if (XHitSize[it] > 1)
-	{
-	  _mm_prefetch(varr + XHitArr.At(it, 1, 0) * sizeof(Hit), _MM_HINT_T1);
-	}
 	maxSize = std::max(maxSize, XHitSize[it]);
       }
     }
@@ -653,8 +580,6 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 
   dprintf("FindCandidates max hits to process=%d\n", maxSize);
 
-  // Has basically no effect, it seems.
-  //#pragma noprefetch
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
     mhp.Reset();
@@ -664,17 +589,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
     {
       if (hit_cnt < XHitSize[itrack])
       {
-        mhp.AddInputAt(itrack, layer_of_hits.m_hits[ XHitArr.At(itrack, hit_cnt, 0) ]);
-      }
-    }
-
-    // Prefetch to L2 the hits we'll (probably) process after two loops iterations.
-    // Ideally this would be initiated before coming here, for whole bunch_of_hits.m_hits vector.
-    for (int itrack = 0; itrack < N_proc; ++itrack)
-    {
-      if (hit_cnt + 2 < XHitSize[itrack])
-      {
-	_mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+2, 0)*sizeof(Hit), _MM_HINT_T1);
+        mhp.AddInputAt(itrack, layer_of_hits.GetHit( XHitArr.At(itrack, hit_cnt, 0) ));
       }
     }
 
@@ -685,18 +600,12 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
     (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
                                    outChi2, N_proc, Config::finding_intra_layer_pflags);
 
-    // Prefetch to L1 the hits we'll (probably) process in the next loop iteration.
-    for (int itrack = 0; itrack < N_proc; ++itrack)
-    {
-      if (hit_cnt + 1 < XHitSize[itrack])
-      {
-	_mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+1, 0)*sizeof(Hit), _MM_HINT_T0);
-      }
-    }
-
-    //now update the track parameters with this hit (note that some calculations are already done when computing chi2, to be optimized)
-    //this is not needed for candidates the hit is not added to, but it's vectorized so doing it serially below should take the same time
-    //still it's a waste of time in case the hit is not added to any of the candidates, so check beforehand that at least one cand needs update
+    // Now update the track parameters with this hit (note that some
+    // calculations are already done when computing chi2, to be optimized).
+    // 1. This is not needed for candidates the hit is not added to, but it's
+    // vectorized so doing it serially below should take the same time.
+    // 2. Still it's a waste of time in case the hit is not added to any of the
+    // candidates, so check beforehand that at least one cand needs update.
     bool oneCandPassCut = false;
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
@@ -733,12 +642,13 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 	  if (chi2 < Config::chi2Cut)
 	  {
 	    dprint("chi2 cut passed, creating new candidate");
-	    //create a new candidate and fill the reccands_tmp vector
-	    Track newcand;
+	    // Create a new candidate and fill the tmp_candidates output vector.
+            // QQQ only instantiate if it will pass, be better than N_best
+	    TrackCand newcand;
             copy_out(newcand, itrack, iC);
 	    newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), layer_of_hits.layer_id(), chi2);
 	    newcand.setSeedTypeForRanking(SeedType(itrack, 0, 0));
-	    newcand.setCandScore(getScoreCand(newcand));
+	    newcand.setScore(getScoreCand(newcand));
 
 	    dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << " z=" << newcand.parameters()[2] << " pt=" << 1./newcand.parameters()[3]);
 
@@ -754,19 +664,14 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
   //fixme: please vectorize me...
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
-    // XXXXMT HACK ... put in original track if a layer was missed completely.
-    // Can/should be done earlier? It must be - we can be propagated to outer
-    // space by now for low pt, low eta tracks.
-    // XXXX-1 - This is now done before, in MkBuilder(), with original candidate, before propagation.
+    // Cands that miss the layer are stashed away in MkBuilder(), before propagation,
+    // and then merged back afterwards.
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
-      // Track newcand;
-      // copy_out(newcand, itrack, iP);
-      // tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
       continue;
     }
 
-    int fake_hit_idx = num_invalid_hits(itrack,true) < Config::maxHolesPerCand ? -1 : -2;
+    int fake_hit_idx = num_all_minus_one_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
 
     if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
@@ -776,11 +681,12 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 
     dprint("ADD FAKE HIT FOR TRACK #" << itrack << " withinBounds=" << (fake_hit_idx != -3) << " r=" << std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0)));
 
-    Track newcand;
+    // QQQ as above, only create and add if score better
+    TrackCand newcand;
     copy_out(newcand, itrack, iP);
     newcand.addHitIdx(fake_hit_idx, layer_of_hits.layer_id(), 0.);
     newcand.setSeedTypeForRanking(SeedType(itrack, 0, 0));
-    newcand.setCandScore(getScoreCand(newcand));
+    newcand.setScore(getScoreCand(newcand));
     tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
   }
 }
@@ -796,14 +702,11 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 {
   // bool debug = true;
 
-  MatriplexHitPacker mhp(layer_of_hits.m_hits[0]);
-
-  const char *varr      = (char*) layer_of_hits.m_hits;
+  MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
   int maxSize = 0;
 
   // Determine maximum number of hits for tracks in the collection.
-  // At the same time prefetch the first set of hits to L1 and the second one to L2.
 #pragma omp simd
   for (int it = 0; it < NN; ++it)
   {
@@ -811,21 +714,13 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     {
       if (XHitSize[it] > 0)
       {
-        _mm_prefetch(varr + XHitArr.At(it, 0, 0) * sizeof(Hit), _MM_HINT_T0);
-        if (XHitSize[it] > 1)
-        {
-          _mm_prefetch(varr + XHitArr.At(it, 1, 0) * sizeof(Hit), _MM_HINT_T1);
-        }
         maxSize = std::max(maxSize, XHitSize[it]);
       }
     }
   }
-  // XXXX MT FIXME: use masks to filter out SlurpIns
 
   dprintf("FindCandidatesCloneEngine max hits to process=%d\n", maxSize);
 
-// Has basically no effect, it seems.
-//#pragma noprefetch
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
     mhp.Reset();
@@ -835,17 +730,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     {
       if (hit_cnt < XHitSize[itrack])
       {
-        mhp.AddInputAt(itrack, layer_of_hits.m_hits[ XHitArr.At(itrack, hit_cnt, 0) ]);
-      }
-    }
-
-    // Prefetch to L2 the hits we'll (probably) process after two loops iterations.
-    // Ideally this would be initiated before coming here, for whole bunch_of_hits.m_hits vector.
-    for (int itrack = 0; itrack < N_proc; ++itrack)
-    {
-      if (hit_cnt + 2 < XHitSize[itrack])
-      {
-        _mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+2, 0)*sizeof(Hit), _MM_HINT_T1);
+        mhp.AddInputAt(itrack, layer_of_hits.GetHit( XHitArr.At(itrack, hit_cnt, 0) ));
       }
     }
 
@@ -854,15 +739,6 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
     (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, outChi2, N_proc, Config::finding_intra_layer_pflags);
-
-    // Prefetch to L1 the hits we'll (probably) process in the next loop iteration.
-    for (int itrack = 0; itrack < N_proc; ++itrack)
-    {
-      if (hit_cnt + 1 < XHitSize[itrack])
-      {
-        _mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+1, 0)*sizeof(Hit), _MM_HINT_T0);
-      }
-    }
 
 #pragma omp simd // DOES NOT VECTORIZE AS IT IS NOW
     for (int itrack = 0; itrack < N_proc; ++itrack)
@@ -876,16 +752,16 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
         if (chi2 < Config::chi2Cut)
         {
           IdxChi2List tmpList;
-          tmpList.trkIdx = CandIdx(itrack, 0, 0);
-          tmpList.hitIdx = XHitArr.At(itrack, hit_cnt, 0);
-          tmpList.nhits  = NFoundHits(itrack,0,0) + 1;
-          tmpList.nholes  = num_invalid_hits(itrack,true);
+          tmpList.trkIdx   = CandIdx(itrack, 0, 0);
+          tmpList.hitIdx   = XHitArr.At(itrack, hit_cnt, 0);
+          tmpList.nhits    = NFoundHits(itrack,0,0) + 1;
+          tmpList.nholes   = num_all_minus_one_hits(itrack);
           tmpList.seedtype = SeedType(itrack, 0, 0);
-          tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
-          tmpList.chi2   = Chi2(itrack, 0, 0) + chi2;
-          tmpList.score  = getScoreStruct(tmpList);
+          tmpList.pt       = std::abs(1.0f/Par[iP].At(itrack,3,0));
+          tmpList.chi2     = Chi2(itrack, 0, 0) + chi2;
+          tmpList.score    = getScoreStruct(tmpList);
           cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
-          // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
+
           dprint("  adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0));
         }
       }
@@ -896,16 +772,16 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
   //now add invalid hit
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
-    dprint("num_invalid_hits(" << itrack << ")=" << num_invalid_hits(itrack,true));
+    dprint("num_all_minus_one_hits(" << itrack << ")=" << num_all_minus_one_hits(itrack));
 
+    // Cands that miss the layer are stashed away in MkBuilder(), before propagation,
+    // and then merged back afterwards.
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
-      // fake_hit_idx = -4;
-      dprint("track missed layer, not adding a clone with a missing hit");
-      continue; // handled outside, keep previous parameters
+      continue;
     }
 
-    int fake_hit_idx = num_invalid_hits(itrack,true) < Config::maxHolesPerCand ? -1 : -2;
+    int fake_hit_idx = num_all_minus_one_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
 
     if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
@@ -913,14 +789,14 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     }
 
     IdxChi2List tmpList;
-    tmpList.trkIdx = CandIdx(itrack, 0, 0);
-    tmpList.hitIdx = fake_hit_idx;
-    tmpList.nhits  = NFoundHits(itrack,0,0);
-    tmpList.nholes  = num_invalid_hits(itrack,false);
+    tmpList.trkIdx   = CandIdx(itrack, 0, 0);
+    tmpList.hitIdx   = fake_hit_idx;
+    tmpList.nhits    = NFoundHits(itrack,0,0);
+    tmpList.nholes   = num_inside_minus_one_hits(itrack);
     tmpList.seedtype = SeedType(itrack, 0, 0);
-    tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
-    tmpList.chi2   = Chi2(itrack, 0, 0);
-    tmpList.score  = getScoreStruct(tmpList);
+    tmpList.pt       = std::abs(1.0f/Par[iP].At(itrack,3,0));
+    tmpList.chi2     = Chi2(itrack, 0, 0);
+    tmpList.score    = getScoreStruct(tmpList);
     cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
     dprint("adding invalid hit " << fake_hit_idx);
   }
@@ -936,11 +812,9 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
 {
   for (int i = 0; i < N_proc; ++i)
   {
-    const HitOnTrack &hot = HoTArrs[i][ NHits[i] - 1];
+    const HitOnTrack &hot = LastHoT[i];
 
-    if (hot.index < 0) continue;
-
-    const Hit &hit = layer_of_hits.m_hits[hot.index];
+    const Hit &hit = layer_of_hits.GetHit(hot.index);
 
     msErr.CopyIn(i, hit.errArray());
     msPar.CopyIn(i, hit.posArray());
@@ -948,33 +822,6 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
 
   (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
                                  Err[iC], Par[iC], N_proc, Config::finding_intra_layer_pflags);
-
-  //now that we have moved propagation at the end of the sequence we lost the handle of
-  //using the propagated parameters instead of the updated for the missing hit case.
-  //so we need to replace by hand the updated with the propagated
-  //there may be a better way to restore this...
-
-  for (int i = 0; i < N_proc; ++i)
-  {
-    if (HoTArrs[i][ NHits[i] - 1].index < 0)
-    {
-      printf("MkFinder::UpdateWithLastHit hit with negative index %d ... i=%d, N_proc=%d.\n",
-             HoTArrs[i][ NHits[i] - 1].index, i, N_proc);
-      assert (false && "This should not happen now that CandCloner builds a true update list.");
-      /*
-      float tmp[21];
-      Err[iP].CopyOut(i, tmp);
-      Err[iC].CopyIn (i, tmp);
-      Par[iP].CopyOut(i, tmp);
-      Par[iC].CopyIn (i, tmp);
-
-      if (HoTArrs[i][ NHits[i] - 1].index == -4)
-      {
-        --NHits[i];
-      }
-      */
-    }
-  }
 }
 
 
@@ -989,13 +836,9 @@ void MkFinder::CopyOutParErr(std::vector<CombCandidate>& seed_cand_vec,
 
   for (int i = 0; i < N_proc; ++i)
   {
-    //create a new candidate and fill the cands_for_next_lay vector
-    Track &cand = seed_cand_vec[SeedIdx(i, 0, 0)][CandIdx(i, 0, 0)];
+    TrackCand &cand = seed_cand_vec[SeedIdx(i, 0, 0)][CandIdx(i, 0, 0)];
 
-    // clone-engine update can remove the last hit if invalid (no chi2 change)
-    cand.setNTotalHits(NHits[i]);
-
-    //set the track state to the updated parameters
+    // Set the track state to the updated parameters
     Err[iO].CopyOut(i, cand.errors_nc().Array());
     Par[iO].CopyOut(i, cand.parameters_nc().Array());
 
@@ -1041,6 +884,8 @@ void MkFinder::BkFitInputTracks(TrackVec& cands, int beg, int end)
 
 //------------------------------------------------------------------------------
 
+/* QQQQ - out until further notice
+
 void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
 {
   // XXXX Can cause trouble if per-seed vectors get scattered beyond 2GB (or maybe 8).
@@ -1069,7 +914,7 @@ void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
 
   Err[iC].Scale(100.0f);
 }
-
+*/
 
 void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
 {
@@ -1086,10 +931,12 @@ void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
       trk.setChi2(Chi2(itrack, 0, 0));
       if(!(std::isnan(trk.chi2())))
       {
-	trk.setCandScore(getScoreCand(trk));
+	trk.setScore(getScoreCand(trk));
       }
     }
 }
+
+/* QQQQ - out until further notice
 
 void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
 {
@@ -1098,7 +945,7 @@ void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
-    Track &trk = eocss[i][0];
+    TrackCand &trk = eocss[i][0];
 
     Err[iP].CopyOut(itrack, trk.errors_nc().Array());
     Par[iP].CopyOut(itrack, trk.parameters_nc().Array());
@@ -1106,10 +953,12 @@ void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
     trk.setChi2(Chi2(itrack, 0, 0));
     if(!(std::isnan(trk.chi2())))
     {
-      trk.setCandScore(getScoreCand(trk));
+      trk.setScore(getScoreCand(trk));
     }
   }
 }
+*/
+
 
 } // end namespace mkfit
 //------------------------------------------------------------------------------
@@ -1148,7 +997,7 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
 
       if (HoTArr[ i ][ CurHit[i] ].layer == layer)
       {
-        const Hit &hit = L.m_hits[ HoTArr[ i ][ CurHit[i] ].index ];
+        const Hit &hit = L.GetHit( HoTArr[ i ][ CurHit[i] ].index );
         msErr.CopyIn(i, hit.errArray());
         msPar.CopyIn(i, hit.posArray());
         ++count;

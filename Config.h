@@ -107,9 +107,9 @@ namespace Config
   // namespace, too.
   // XXXX This needs to be generalized for other geometries !
   // TrackerInfo more or less has all this information (or could have it).
-  extern    int   nTotalLayers;        // To be set by geometry plugin.
-  constexpr int   nMaxSimHits    = 32; // Assuming dual hit on every barrel / endcap edge -> used in tkNtuple
-  constexpr int   nMaxTrkHits    = nMaxSimHits; // Used for array sizes in MkFitter and Track
+  extern    int   nTotalLayers;          // To be set by geometry plugin.
+  constexpr int   nMaxTrkHits      = 64; // Used for array sizes in MkFitter/Finder, max hits in toy MC
+  constexpr int   nAvgSimHits      = 32; // Used for reserve() calls for sim hits/states
 
   constexpr float fRadialSpacing   = 4.;
   constexpr float fRadialExtent    = 0.01;
@@ -198,11 +198,6 @@ namespace Config
   constexpr float varXY       = Config::hitposerrXY * Config::hitposerrXY;
   constexpr float varZ        = Config::hitposerrZ  * Config::hitposerrZ;
   constexpr float varR        = Config::hitposerrR  * Config::hitposerrR;
-
-  // XXMT4K OK ... what do we do with this guy? MaxTotHit / AvgTotHit ... ?
-  // For now setting it to nMaxTrkLayers which is too big ... but it seems to be
-  // only used for vector::reserve() ...
-  constexpr int nTotHit = Config::nMaxSimHits; // for now one hit per layer for sim
 
   // scattering simulation
   constexpr float X0 = 9.370; // cm, from http://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/silicon_Si.html // Pb = 0.5612 cm
@@ -305,6 +300,7 @@ namespace Config
   extern    int maxCandsPerEtaBin;
 
   extern    bool mtvLikeValidation;
+  extern    bool mtvRequireSeeds;
   // Selection of simtracks from CMSSW. Used in Event::clean_cms_simtracks() and MkBuilder::prep_cmsswtracks()
   extern    int   cmsSelMinLayers;
 
@@ -358,8 +354,9 @@ namespace Config
   constexpr float track_ptlow = 0.9;
 
   // sorting config (bonus,penalty)
-  constexpr float validHitBonus_ = 10.0;//2.5*4.0; // 4x cmssw bonus (after fix for counts of # missing hits)
-  constexpr float missingHitPenalty_ = 5.0;//20.0/4.0; // 0.25x cmssw penalty (after fix for counts of # missing hits)  
+  constexpr float validHitBonus_ = 7.5;//cmssw bonus = 2.5
+  constexpr float missingHitPenalty_ = 5.0;//cmssw penalty = 20
+  // QQQQ do we still need this?
   constexpr float maxChi2ForRanking_ = 819.2f; // (=0.5f*0.1f*pow(2,14);)
 
   // Threading

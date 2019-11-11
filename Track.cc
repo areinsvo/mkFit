@@ -73,12 +73,11 @@ SMatrix66 TrackState::jacobianCartesianToCCS(float px,float py,float pz) const {
   return jac;
 }
 
-
 //==============================================================================
-// Track
+// TrackBase
 //==============================================================================
 
-bool Track::hasSillyValues(bool dump, bool fix, const char* pref)
+bool TrackBase::hasSillyValues(bool dump, bool fix, const char* pref)
 {
   bool is_silly = false;
   for (int i = 0; i < LL; ++i)
@@ -90,7 +89,7 @@ bool Track::hasSillyValues(bool dump, bool fix, const char* pref)
         if ( ! is_silly)
         {
           is_silly = true;
-          if (dump) printf("%s (label=%d):", pref, label_);
+          if (dump) printf("%s (label=%d):", pref, label());
         }
         if (dump) printf(" (%d,%d)=%e", i, j, state_.errors.At(i,j));
         if (fix)  state_.errors.At(i,j) = 1;
@@ -101,13 +100,22 @@ bool Track::hasSillyValues(bool dump, bool fix, const char* pref)
   return is_silly;
 }
 
-//------------------------------------------------------------------------------
+//==============================================================================
+// Track
+//==============================================================================
+
+void Track::resizeHitsForInput()
+{
+  bzero(&hitsOnTrk_, sizeof(hitsOnTrk_));
+  hitsOnTrk_.resize(lastHitIdx_ + 1);
+}
 
 void Track::sortHitsByLayer()
 {
   std::sort(& hitsOnTrk_[0], & hitsOnTrk_[lastHitIdx_ + 1],
-            [&](HitOnTrack h1, HitOnTrack h2) { return h1.layer < h2.layer; });
+	    [](const auto & h1, const auto & h2) { return h1.layer < h2.layer; });
 }
+
 
 float Track::swimPhiToR(const float x0, const float y0) const
 {
@@ -395,7 +403,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     }
   
     // total found hits in hit index array, excluding seed if necessary
-    const int nCandHits = ((Config::mtvLikeValidation || isSeed) ? trk.nStoredFoundHits() : trk.nStoredFoundHits() - nSeedHits);
+    const int nCandHits = ((Config::mtvLikeValidation || isSeed) ? trk.nFoundHits() : trk.nFoundHits() - nSeedHits);
 
     // 75% or 50% matching criterion 
     if ( ( Config::mtvLikeValidation ? (4*mccount > 3*nCandHits) : (2*mccount >= nCandHits) ) )
@@ -567,7 +575,7 @@ void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vec
 
   // other important info
   nHitsMatched_ = nHitsMatched;
-  fracHitsMatched_ = float(nHitsMatched_) / float(trk.nStoredFoundHits()-nSeedHits); // seed hits may already be included!
+  fracHitsMatched_ = float(nHitsMatched_) / float(trk.nFoundHits()-nSeedHits); // seed hits may already be included!
 }
 
 void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMapMap& cmsswHitIDMap, const TrackVec& cmsswtracks, 
@@ -604,7 +612,7 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
     const auto nMatchedHits = labelMatchPair.second;
 
     // 50% matching criterion 
-    if ((2*nMatchedHits) >= (cmsswtracks[cmsswlabel].nUniqueLayers(false)-cmsswextras[cmsswlabel].nMatchedSeedHits())) labelMatchVec.push_back(cmsswlabel);
+    if ((2*nMatchedHits) >= (cmsswtracks[cmsswlabel].nUniqueLayers()-cmsswextras[cmsswlabel].nMatchedSeedHits())) labelMatchVec.push_back(cmsswlabel);
   }
 
   // initialize tmpID for later use
@@ -625,7 +633,7 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
 		  const auto & extra1 = cmsswextras[label1];
 		  const auto & extra2 = cmsswextras[label2];
 
-		  return ((track1.nUniqueLayers(false)-extra1.nMatchedSeedHits()) < (track2.nUniqueLayers(false)-extra2.nMatchedSeedHits()));
+		  return ((track1.nUniqueLayers()-extra1.nMatchedSeedHits()) < (track2.nUniqueLayers()-extra2.nMatchedSeedHits()));
 		}
 		return labelMatchMap[label1] > labelMatchMap[label2];
 	      });
@@ -719,7 +727,7 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
   cmsswTrackID_ = modifyRefTrackID(trk.nFoundHits()-nSeedHits,Config::nMinFoundHits-nSeedHits,cmsswtracks,cmsswlabel,trk.getDuplicateValue(),cmsswTrackID_);
 
   // other important info
-  fracHitsMatched_ = (cmsswTrackID >=0 ? (float(nHitsMatched_) / float(cmsswtracks[cmsswTrackID].nUniqueLayers(false)-cmsswextras[cmsswTrackID].nMatchedSeedHits())) : 0.f);
+  fracHitsMatched_ = (cmsswTrackID >=0 ? (float(nHitsMatched_) / float(cmsswtracks[cmsswTrackID].nUniqueLayers()-cmsswextras[cmsswTrackID].nMatchedSeedHits())) : 0.f);
 }
 
 //==============================================================================

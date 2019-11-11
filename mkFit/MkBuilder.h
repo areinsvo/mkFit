@@ -154,7 +154,6 @@ public:
   void map_track_hits  (TrackVec & tracks); // m_event->layerHits_ -> m_event_of_hits.m_layers_of_hits
   void remap_track_hits(TrackVec & tracks); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_
 
-  void quality_prep_tracks(TrackVec & tracks);
   void quality_val();
   void quality_reset();
   void quality_process(Track& tkcand, const int itrack, std::map<int,int> & cmsswLabelToPos);
@@ -187,7 +186,7 @@ public:
                                      int prev_layer, bool pickup_only);
 
   void find_tracks_handle_missed_layers(MkFinder *mkfndr, const LayerInfo &layer_info,
-                                        std::vector<std::vector<Track>> &tmp_cands,
+                                        std::vector<std::vector<TrackCand>> &tmp_cands,
                                         const std::vector<std::pair<int,int>> &seed_cand_idx,
                                         const int region, const int start_seed,
                                         const int itrack, const int end);

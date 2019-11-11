@@ -1,4 +1,4 @@
-# mictest: a repository for vectorized, parallelized charged particle track reconstruction
+# mkFit: a repository for vectorized, parallelized charged particle track reconstruction
 
 **Intro**: Below is a short README on setup steps, code change procedures, and some helpful pointers. Please read this thoroughly before checking out the code! As this is a markdown file, it is best viewed via a web browser.
 
@@ -50,10 +50,11 @@
 - **phi1.t2.ucsd.edu**: [Intel Xeon Processor E5-2620](https://ark.intel.com/products/64594/Intel-Xeon-Processor-E5-2620-15M-Cache-2_00-GHz-7_20-GTs-Intel-QPI) _Sandy Bridge_ (referred to as SNB, phiphi, phi1)
 - **phi2.t2.ucsd.edu**: [Intel Xeon Phi Processor 7210](https://ark.intel.com/products/94033/Intel-Xeon-Phi-Processor-7210-16GB-1_30-GHz-64-core) _Knights Landing_ (referred to as KNL, phi2)
 - **phi3.t2.ucsd.edu**: [Intel Xeon Gold 6130 Processor](https://ark.intel.com/products/120492/Intel-Xeon-Gold-6130-Processor-22M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Au, SKL-SP, phi3)
-- **lnx4108.classe.cornell.edu**: [Intel Xeon Silver 4116 Processor](https://ark.intel.com/products/120481/Intel-Xeon-Silver-4116-Processor-16_5M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Ag, SKL-SP, lnx4108)
+- **lnx4108.classe.cornell.edu**: [Intel Xeon Silver 4116 Processor](https://ark.intel.com/products/120481/Intel-Xeon-Silver-4116-Processor-16_5M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Ag, SKL-SP, lnx4108, LNX-S)
+- **lnx7188.classe.cornell.edu**: [Intel Xeon Gold 6142 Processor](https://ark.intel.com/content/www/us/en/ark/products/120487/intel-xeon-gold-6142-processor-22m-cache-2-60-ghz.html) _Skylake Scalable Performance_ (referred to as lnx7188,LNX-G)
 - **GPUs**: to be filled out
 
-phi1, phi2, and phi3 are all managed across a virtual login server and therefore the home user spaces are shared. phi1, phi2, phi3, and lnx4108 also have /cvmfs mounted so you can source the environment needed to run the code.
+phi1, phi2, and phi3 are all managed across a virtual login server and therefore the home user spaces are shared. phi1, phi2, phi3, lnx7188, and lnx4108 also have /cvmfs mounted so you can source the environment needed to run the code.
 
 The main development platform is phi3. This is the recommended machine for beginning development and testing. Login into any of the machines is achieved through ```ssh -X -Y <phi username>@phi<N>.t2.ucsd.edu```. It is recommended that you setup ssh key forwarding on your local machine so as to avoid typing in your password with every login, and more importantly, to avoid typing your password during the benchmarking (see Section 10.ii.b).
 
@@ -65,12 +66,12 @@ For further info on the configuration of each machine, use your favorite text fi
 
 ## Section 2: How to checkout the code
 
-The master development branch is ```devel```, hosted on a [private GH repo](https://github.com/cerati/mictest) (referred to as ```cerati/devel``` for the remainder of the README). This is a private repository, as are all forks of this repository. Development for mictest is done on separate branches within a forked repository. Since Giuseppe is politely hosting the main repo on his account, make sure to fork the repository to your own account first (using the "Fork" option at the top of the webpage), and push any development branches to your own forked repo first.
+The master development branch is ```devel```, hosted on a [public GH repo](https://github.com/trackreco/mkFit) (referred to as ```trackreco/devel``` for the remainder of the README). This is a public repository, as are all forks of this repository. Development for mkFit is done on separate branches within a forked repository. Make sure to fork the repository to your own account first (using the "Fork" option at the top of the webpage), and push any development branches to your own forked repo first.
 
 Once forked, checkout a local copy by simply doing a git clone:
 
 ```
-git clone git@github.com:<user>/mictest
+git clone git@github.com:<user>/mkFit
 ```
 
 where ```<user>``` is your GH username if renamed your remote to your username. Otherwise ```<user>``` will be ```origin```.
@@ -78,7 +79,7 @@ where ```<user>``` is your GH username if renamed your remote to your username. 
 If you wish to add another user's repo to your local clone, do:
 
 ```
-git remote add <user> git@github.com:<user>/mictest
+git remote add <user> git@github.com:<user>/mkFit
 ```
 
 This is useful if you want to submit changes to another user's branches. To checkout a remote branch, do:
@@ -135,7 +136,7 @@ Below are some rules and procedures on how to submit changes to the main develop
 6. Run the full benchmarking + validation suite on all platforms: follow procedure in Section 5 (below)! If you notice changes to compute or physics performance, make sure to understand why! Even if you are proposing a technical two-line change, please follow this step as it ensures we have a full history of changes.
 7. Prepare a Pull Request (PR)
    1. Push your branch to your forked repo on GitHub: ```git push <forked_repo_name> <branch>```
-   2. [Navigate to the main GH](https://github.com/cerati/mictest)
+   2. [Navigate to the main GH](https://github.com/trackreco/mkFit)
    3. Click on "New Pull Request"
    4. Click on "Compare across forks", and navigate to your fork + branch you wish to merge as the "head fork + compare"
    5. Provide a decent title, give a brief description of the proposed commits. Include a link to the benchmarking and validation plots in the description. If there are changes to the compute or physics performance, provide an explanation for why! If no changes are expected and none are seen, make sure to mention it.
@@ -160,7 +161,7 @@ Currently, the full benchmark and validation suite uses simulated event data fro
 The main script for running the full suite can be launched from the top-level directory with:
 
 ```
-./xeon_scripts/runBenchmark.sh ${suite}
+./xeon_scripts/runBenchmark.sh ${suite} ${useARCH} ${lnxuser}
 ```
 
 There are three options for running the full suite by passing one of the three strings to the parameter ```${suite}```:
@@ -169,6 +170,16 @@ There are three options for running the full suite by passing one of the three s
 - ```forConf``` : runs compute and physics tests for track finding routines used for conferences only (currently only CE)
 
 The ```full``` option currently takes little more than a half hour, while the other tests take about 25 minutes. 
+
+Additionally, the ```${useARCH}``` option allows the benchmarks to be run on different computer clusters: 
+- ```${useARCH} = 0```: (default) runs on phi3 computers only. This option should be run from phi3.
+- ```${useARCH} = 1```: runs on lnx7188 and lnx4108 only. This option should be run from lnx7188.
+- ```${useARCH} = 2```: runs on both phi3 and lnx. This option should be run from phi3.
+- ```${useARCH} = 3```: runs on both all phi computers (phi1, phi2 and phi3). This option should be run from phi3.
+- ```${useARCH} = 4```: runs on both all phi computers (phi1, phi2 and phi3) as well as lnx7188 and lnx4108. This option should be run from phi3.
+
+
+- ```${lnxuser}``` denotes the username on the lnx computers. This is only need if running on the lnx computers when the lnx username is different from the phi3 username.  
 
 Inside the main script, tests are submitted for phi1, phi2, and phi3 concurrently by: tarring up the local repo, sending the tarball to a disk space on the remote platform, compiling the untarred directory natively on the remote platform, and then sending back the log files to be analyzed on phi3. It should be noted that the tests for phi3 are simply run on in the user home directory when logged into phi3 (although we could in principle ship the code to the work space disk on phi3). Because we run the tests for phi3 in the home directory, which is shared by all three machines, we pack and send the code to a remote _disk_ space _before_ launching the tests on phi3 from the home directory. The scripts that handle the remote testing are: 
 
@@ -460,7 +471,7 @@ life easier for everybody.
 
 To be used from CMSSW the `mkFit` must be built with the CMSSW
 toolchain. Assuming you are in an empty directory, the following
-recipe will set up a CMSSW developer area and a `mictest` area there,
+recipe will set up a CMSSW developer area and a `mkFit` area there,
 and compile `mkFit` using the CMSSW toolchain.
 
 **Note:** Use a `SCRAM_ARCH` with `gcc630` (i.e. either
@@ -478,8 +489,8 @@ pushd CMSSW_10_4_0_patch1/src
 cmsenv
 git cms-init
 popd
-git clone git@github.com:cerati/mictest
-pushd mictest
+git clone git@github.com:trackreco/mkFit
+pushd mkFit
 TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12
 popd
 ```
@@ -495,8 +506,8 @@ pushd CMSSW_10_4_0_patch1/src
 cmsenv
 git cms-init
 popd
-git clone git@github.com:cerati/mictest
-pushd mictest
+git clone git@github.com:trackreco/mkFit
+pushd mkFit
 TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12 AVX_512:=1
 popd
 ```
@@ -511,7 +522,7 @@ pushd CMSSW_10_4_0_patch1/src
 cat <<EOF >mkfit.xml
 <tool name="mkfit" version="1.0">
   <client>
-    <environment name="MKFITBASE" default="$PWD/../../mictest"/>
+    <environment name="MKFITBASE" default="$PWD/../../mkFit"/>
     <environment name="LIBDIR" default="\$MKFITBASE/lib"/>
     <environment name="INCLUDE" default="\$MKFITBASE"/>
   </client>
@@ -737,7 +748,7 @@ contributions of all three modules.
 ### Section 10.i: Important Links
 
 Project Links
-- [Main development GitHub](https://github.com/cerati/mictest)
+- [Main development GitHub](https://github.com/trackreco/mkFit)
 - [Our project website](https://trackreco.github.io) and the [GH repo](https://github.com/trackreco/trackreco.github.io-source) hosting the web files. Feel free to edit the website repo if you have contributed a presentation, poster, or paper. 
 - Out-of-date and no longer used [project twiki](https://twiki.cern.ch/twiki/bin/viewauth/CMS/MicTrkRnD)
 - [Indico meeting page](https://indico.cern.ch/category/8433)
