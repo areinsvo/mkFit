@@ -386,7 +386,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
 // runBuildTestPlex Combinatorial: Full Vector TBB
 //==============================================================================
 
-double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
+/*double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
 {
   builder.begin_event(&ev, __func__);
 
@@ -490,7 +490,7 @@ double runBuildingTestPlexCloneEngineGPU(Event& ev, EventTmp& ev_tmp,
   return time;
 }
 #endif
-
+*/
 //==============================================================================
 // runAllBuildTestPlexBestHitGPU
 //==============================================================================

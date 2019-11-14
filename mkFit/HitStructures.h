@@ -9,11 +9,11 @@
 #include "Debug.h"
 
 #include <array>
-#include <tbb/tbb.h>
+//#include <tbb/tbb.h>
 
 namespace mkfit {
 
-typedef tbb::concurrent_vector<TripletIdx> TripletIdxConVec;
+  //typedef tbb::concurrent_vector<TripletIdx> TripletIdxConVec;
 
 // for each layer
 //   Config::nEtaBin vectors of hits, resized to large enough N
@@ -148,7 +148,7 @@ public:
   static constexpr int   m_phi_fine_mask = ~((1 << m_phi_bits_shift) - 1);
 
 protected:
-
+  /*
 #ifdef COPY_SORTED_HITS
   void alloc_hits(int size)
   {
@@ -162,7 +162,7 @@ protected:
     _mm_free(m_hits);
   }
 #endif
-
+  */
   void setup_bins(float qmin, float qmax, float dq);
 
   void set_phi_bin(int q_bin, int phi_bin, uint16_t &hit_count, uint16_t &hits_in_bin)

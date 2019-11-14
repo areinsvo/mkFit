@@ -9,7 +9,7 @@
 #include "CandCloner.h"
 #include "MkFitter.h"
 #include "MkFinder.h"
-#include "MkFinderFV.h"
+//#include "MkFinderFV.h"
 #include "SteeringParams.h"
 
 #include <functional>
@@ -28,19 +28,19 @@ class LayerInfo;
 
 //------------------------------------------------------------------------------
 
-using MkFinderFvVec = std::vector<MkFinderFv, aligned_allocator<MkFinderFv, 64>>;
+//using MkFinderFvVec = std::vector<MkFinderFv, aligned_allocator<MkFinderFv, 64>>;
 
 struct ExecutionContext
 {
   ExecutionContext() {}
   ~ExecutionContext() {
-    dprint("MkFinderFvVec count " << m_finderv.unsafe_size());
+    //    dprint("MkFinderFvVec count " << m_finderv.unsafe_size());
   }
 
   Pool<CandCloner> m_cloners;
   Pool<MkFitter>   m_fitters;
   Pool<MkFinder>   m_finders;
-  tbb::concurrent_queue<MkFinderFvVec> m_finderv;
+  //  tbb::concurrent_queue<MkFinderFvVec> m_finderv;
 
   void populate(int n_thr)
   {
@@ -48,7 +48,7 @@ struct ExecutionContext
     m_fitters.populate(n_thr - m_fitters.size());
     m_finders.populate(n_thr - m_finders.size());
   }
-
+  /*
   void populate_finderv(int n_thr, int n_seedsPerThread)
   {
     int count = MkFinderFv::nMplx(n_seedsPerThread);
@@ -60,7 +60,7 @@ struct ExecutionContext
         m_finderv.push(std::move(fv));
       }
     }
-  }
+    }
 
   MkFinderFvVec getFV(int sz)
   {
@@ -77,7 +77,7 @@ struct ExecutionContext
   void pushFV(MkFinderFvVec fv)
   {
     m_finderv.push(std::move(fv));
-  }
+    }*/
 };
 
 extern ExecutionContext g_exe_ctx;
@@ -116,9 +116,9 @@ public:
   static void populate(bool populatefv = false)
   {
     g_exe_ctx.populate(Config::numThreadsFinder);
-    if (populatefv) {
+    /*    if (populatefv) {
       g_exe_ctx.populate_finderv(Config::numThreadsFinder, Config::numSeedsPerTask);
-    }
+      }*/
   }
 
   int total_cands() const { 
@@ -193,7 +193,7 @@ public:
 
   void find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
                              const int start_seed, const int end_seed, const int region);
-  void find_tracks_in_layersFV(int start_seed, int end_seed, int region);
+  //  void find_tracks_in_layersFV(int start_seed, int end_seed, int region);
 
   // --------
 
@@ -202,7 +202,7 @@ public:
   void FindTracksBestHit();
   void FindTracksStandard();
   void FindTracksCloneEngine();
-  void FindTracksFV();
+  //  void FindTracksFV();
 
   void BackwardFitBH();
   void fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int region);

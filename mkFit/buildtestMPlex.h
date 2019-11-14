@@ -15,7 +15,7 @@ void   runBuildingTestPlexDumbCMSSW(Event& ev, MkBuilder& builder);
 double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder);
 double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder);
 double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder);
-double runBuildingTestPlexFV(Event& ev, MkBuilder& builder);
+//double runBuildingTestPlexFV(Event& ev, MkBuilder& builder);
 
 #if USE_CUDA
 double runBuildingTestPlexBestHitGPU(Event& ev, MkBuilder& builder,

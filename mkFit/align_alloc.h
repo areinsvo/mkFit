@@ -106,7 +106,7 @@ class aligned_allocator
 			}
  
 			// Mallocator wraps malloc().
-			void * const pv = _mm_malloc(n * sizeof(T), Alignment);
+			void * const pv = malloc(n * sizeof(T));
  
 			// Allocators should throw std::bad_alloc in the case of memory allocation failure.
 			if (pv == NULL)
@@ -119,7 +119,7 @@ class aligned_allocator
  
 		void deallocate(T * const p, const std::size_t n) const
 		{
-			_mm_free(p);
+			free(p);
 		}
  
  

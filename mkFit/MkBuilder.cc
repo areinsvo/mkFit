@@ -2,7 +2,7 @@
 #include <limits>
 
 #include "MkBuilder.h"
-#include "seedtestMPlex.h"
+//#include "seedtestMPlex.h"
 
 #include "Event.h"
 #include "TrackerInfo.h"
@@ -593,7 +593,7 @@ void MkBuilder::import_seeds()
     m_event->seedEtaSeparators_[i] += m_event->seedEtaSeparators_[i - 1];
   }
 }
-
+  /*
 void MkBuilder::find_seeds()
 {
   fprintf(stderr, "__FILE__::__LINE__ Needs fixing for B/E support, search for XXMT4K\n");
@@ -646,7 +646,7 @@ void MkBuilder::find_seeds()
     dprint("iseed: " << iseed << " mcids: " << hit0.mcTrackID(m_event->simHitsInfo_) << " " <<
 	   hit1.mcTrackID(m_event->simHitsInfo_) << " " << hit1.mcTrackID(m_event->simHitsInfo_));
   }
-}
+  }*/
 
 } // end namespace mkfit
 
@@ -1517,12 +1517,12 @@ void MkBuilder::PrepareSeeds()
     // map seed track hits into layer_of_hits
     map_track_hits(m_event->seedTracks_);
   }
-  else if (Config::seedInput == findSeeds)
+  /*  else if (Config::seedInput == findSeeds)
   {
     find_seeds();
     // XXXMT4K Those should be either sorted or sort should be called afterwards.
     // Note, sort also fills out some eta region info arrays in Event.
-  }
+    }*/
   else 
   {
     std::cerr << "No input seed collection option selected!! Exiting..." << std::endl;
@@ -2156,7 +2156,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 //------------------------------------------------------------------------------
 // FindTracksCombinatorial: FullVector TBB
 //------------------------------------------------------------------------------
-
+/*
 void MkBuilder::FindTracksFV()
 {
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
@@ -2277,7 +2277,7 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
   }
 #endif
 }
-
+*/
 
 //==============================================================================
 // BackwardFit
