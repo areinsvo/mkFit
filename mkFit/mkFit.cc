@@ -409,6 +409,8 @@ void test_standard()
     auto& mkb    = *mkbs[thisthread].get();
     auto  fp     =  fps[thisthread].get();
 
+    mkb.quality_reset();
+          
     int evstart = thisthread*events_per_thread;
     int evend   = std::min(Config::nEvents, evstart+events_per_thread);
 
@@ -508,6 +510,7 @@ void test_standard()
         if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
       }
     }
+    mkb.quality_print();
     }
   //  }, tbb::simple_partitioner()); //end of tbb parallel for
 

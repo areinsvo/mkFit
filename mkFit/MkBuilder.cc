@@ -917,7 +917,7 @@ void MkBuilder::remap_track_hits(TrackVec & tracks)
 
 void MkBuilder::quality_val()
 {
-  quality_reset();
+  //  quality_reset();
 
   // remap hits
   remap_track_hits(m_event->seedTracks_);
@@ -937,7 +937,7 @@ void MkBuilder::quality_val()
     quality_process(m_event->candidateTracks_[itrack],itrack,cmsswLabelToPos);
   }
 
-  quality_print();
+  //  quality_print();
 }
 
 void MkBuilder::quality_reset()
@@ -1052,22 +1052,28 @@ void MkBuilder::quality_process(Track &tkcand, const int itrack, std::map<int,in
     }
   }
 
-  if (!Config::silent && Config::dumpForPlots)
+  /*  if (!Config::silent && Config::dumpForPlots)
   {
     std::lock_guard<std::mutex> printlock(Event::printmutex);
-    printf("MX - found track with chi2= %6.3f nFoundHits= %2d pT= %7.4f eta= %7.4f phi= %7.4f nfoundmc= %2d pTmc= %7.4f etamc= %7.4f phimc= %7.4f nfoundcmssw= %2d pTcmssw= %7.4f etacmssw= %7.4f phicmssw= %7.4f lab= %d\n",
-           tkcand.chi2(), tkcand.nFoundHits(), pT, tkcand.momEta(), tkcand.momPhi(), nfoundmc, pTmc, etamc, phimc, nfoundcmssw, pTcmssw, etacmssw, phicmssw, label);
-  }
+    //    printf("MX - found track with chi2= %6.3f nFoundHits= %2d pT= %7.4f eta= %7.4f phi= %7.4f nfoundmc= %2d pTmc= %7.4f etamc= %7.4f phimc= %7.4f nfoundcmssw= %2d pTcmssw= %7.4f etacmssw= %7.4f phicmssw= %7.4f lab= %d\n",
+    //           tkcand.chi2(), tkcand.nFoundHits(), pT, tkcand.momEta(), tkcand.momPhi(), nfoundmc, pTmc, etamc, phimc, nfoundcmssw, pTcmssw, etacmssw, phicmssw, label);
+    }*/
 }
 
 void MkBuilder::quality_print()
 {
-  if (!Config::silent) 
-  {
+  //  if (!Config::silent) 
+  // {
     std::lock_guard<std::mutex> printlock(Event::printmutex);
-    std::cout << "found tracks=" << m_cnt   << "  in pT 10%=" << m_cnt1   << "  in pT 20%=" << m_cnt2   << "     no_mc_assoc="<< m_cnt_nomc <<std::endl;
-    std::cout << "  nH >= 80% =" << m_cnt_8 << "  in pT 10%=" << m_cnt1_8 << "  in pT 20%=" << m_cnt2_8 << std::endl;
-  }
+    std::cout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+    std::cout << "Number of associated tracks = " << m_cnt << ", and non associated tracks = " << m_cnt_nomc << std::endl;
+    std::cout << "Of the associated tracks, " << m_cnt1 << " have pt within 10% and " << m_cnt2 << " have pt within 20%" << std::endl;
+    std::cout << "Of the associated tracks, " << m_cnt_8 << " have the same number of hits within 80%. Of those, " << m_cnt1_8 << " have pt within 10% and " << m_cnt2_8 << " have pt within 20%" << std::endl;
+    std::cout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+
+    //    std::cout << "found tracks=" << m_cnt   << "  in pT 10%=" << m_cnt1   << "  in pT 20%=" << m_cnt2   << "     no_mc_assoc="<< m_cnt_nomc <<std::endl;
+    //std::cout << "  nH >= 80% =" << m_cnt_8 << "  in pT 10%=" << m_cnt1_8 << "  in pT 20%=" << m_cnt2_8 << std::endl;
+    //}
 }
 
 void MkBuilder::track_print(Track &t, const char* pref)
