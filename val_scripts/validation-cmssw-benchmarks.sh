@@ -6,7 +6,7 @@
 
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 style=${2:-"--mtv-like-val"} # option --mtv-like-val
-inputBin=${3:-"104XPU50CCC"}
+inputBin=${3:-"104XPU50CCC_charge"}
 
 ###################
 ## Configuration ##
@@ -29,6 +29,12 @@ case ${inputBin} in
         dir=/data2
         subdir=
         file=pu50-ccc-hs.bin
+        ;;
+"104XPU50CCC_charge")
+        echo "Inputs from 2018 initialStep/default PU 50 with CCC"
+        dir=/data2/areinsvo
+        subdir=
+        file=pu50-ccc-hs-charge.bin
         ;;
 *)
         echo "INPUT BIN IS UNKNOWN"

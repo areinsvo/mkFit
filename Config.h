@@ -320,6 +320,7 @@ namespace Config
   extern bool tryToSaveSimInfo;
   extern matchOpts cmsswMatchingFW;
   extern matchOpts cmsswMatchingBK;
+  extern bool saveSameCharge ;
 
   // config on duplicate removal
   extern bool useHitsForDuplicates;

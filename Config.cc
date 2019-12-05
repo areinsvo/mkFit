@@ -84,6 +84,7 @@ namespace Config
   bool  tryToSaveSimInfo = false;
   matchOpts cmsswMatchingFW = hitBased;
   matchOpts cmsswMatchingBK = trkParamBased;
+  bool  saveSameCharge = true;
 
   bool  removeDuplicates = false;
   bool  useHitsForDuplicates = true;

@@ -191,6 +191,7 @@ int main(int argc, char *argv[])
   }
   
   TTree* t = (TTree*) f->Get("trackingNtuple/tree");
+  //TTree* t = (TTree*) f->Get("tree");
 
   unsigned long long event;
   t->SetBranchAddress("event",&event);
@@ -332,6 +333,7 @@ int main(int argc, char *argv[])
   std::vector<float>*   see_stateCcov45 = 0;
   std::vector<float>*   see_stateCcov55 = 0;
   std::vector<int>*     see_q = 0;
+  std::vector<int>*     see_trkIdx = 0;
   std::vector<unsigned int>*     see_algo = 0;
   t->SetBranchAddress("see_stateTrajGlbX",&see_stateTrajGlbX);
   t->SetBranchAddress("see_stateTrajGlbY",&see_stateTrajGlbY);
@@ -364,6 +366,8 @@ int main(int argc, char *argv[])
   t->SetBranchAddress("see_stateCcov55",&see_stateCcov55);
   t->SetBranchAddress("see_q",&see_q);
   t->SetBranchAddress("see_algo",&see_algo);
+  t->SetBranchAddress("see_trkIdx",&see_trkIdx);
+
 
   std::vector<std::vector<int> >* see_hitIdx = 0;
   t->SetBranchAddress("see_hitIdx", &see_hitIdx);
@@ -702,6 +706,13 @@ int main(int argc, char *argv[])
 	if (std::count(shTypes.begin(), shTypes.end(), int(HitType::Pixel)) > 0) {
 	  seedSimIdx[seedIdx] = simTracks_.size();
 	}
+	track.setMatchToCMSSW(true);
+	if(sim_q->at(isim) == trk_q->at(trkIdx)) track.setSameChargeCMSSW(true);
+	else track.setSameChargeCMSSW(false);
+      }
+      else
+      {
+	track.setMatchToCMSSW(false);
       }
       if (cleanSimTracks){
 	if (sim_nValid->at(isim) < cleanSimTrack_minSimHits) continue;
@@ -781,6 +792,15 @@ int main(int argc, char *argv[])
 	unsigned int ipix = shIdxs[ip];
 	//cout << "ipix=" << ipix << " seed=" << seedTracks_.size() << endl;
 	pixHitSeedIdx[ipix].push_back(seedTracks_.size());
+      }
+      if(see_trkIdx->at(is) >= 0){
+	track.setMatchToCMSSW(true);
+	if(see_q->at(is) !=trk_q->at(see_trkIdx->at(is)) ) track.setSameChargeCMSSW(false);
+	else track.setSameChargeCMSSW(true);
+      }
+      else{
+	track.setMatchToCMSSW(false);
+	track.setSameChargeCMSSW(false);
       }
       seedTracks_.push_back(track);
     }

@@ -231,8 +231,12 @@ public:
 	// Whether or not the track matched to another track and had the lower cand score
 	bool duplicate : 1;
 
+	//For study of charge effectiveness
+	bool matchToCMSSW : 1;
+	bool sameChargeCMSSW : 1;
+
         // The remaining bits.
-        unsigned int _free_bits_ : 25;
+        unsigned int _free_bits_ : 23;
 
       };
 
@@ -256,6 +260,11 @@ public:
   //Seed type for ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds.
   void setSeedTypeForRanking(unsigned int r) { status_.seed_type = r; }
   unsigned int getSeedTypeForRanking() const { return status_.seed_type; }
+
+  void setMatchToCMSSW(bool d){status_.matchToCMSSW = d;}
+  void setSameChargeCMSSW(bool d){status_.sameChargeCMSSW = d;}
+  bool matchToCMSSW() const{return status_.matchToCMSSW;}
+  bool sameChargeCMSSW() const{return status_.sameChargeCMSSW;}
 
   void setDuplicateValue(bool d) {status_.duplicate = d;}
   bool getDuplicateValue() const {return status_.duplicate;}
