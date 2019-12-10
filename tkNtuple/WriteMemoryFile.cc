@@ -219,6 +219,9 @@ int main(int argc, char *argv[])
   std::vector<vector<int> >*   sim_trkIdx = 0;
   t->SetBranchAddress("sim_trkIdx", &sim_trkIdx);
 
+  std::vector<vector<int> >*   sim_seedIdx = 0;
+  t->SetBranchAddress("sim_seedIdx", &sim_seedIdx);
+
   //simvtx
   std::vector<float>* simvtx_x = 0;
   std::vector<float>* simvtx_y = 0;
@@ -714,6 +717,14 @@ int main(int argc, char *argv[])
       {
 	track.setMatchToCMSSW(false);
       }
+      
+      vector<int> const& seedIdxV = sim_seedIdx->at(isim);
+      bool match = false;
+      for(unsigned int i =0 ; i < seedIdxV.size(); i++){
+	if(sim_q->at(isim) == see_q->at(seedIdxV[i])) match = true;
+      }
+      track.setSameChargeSeed(match);
+
       if (cleanSimTracks){
 	if (sim_nValid->at(isim) < cleanSimTrack_minSimHits) continue;
 	if (cleanSimTrack_minRecHits > 0){

@@ -1233,8 +1233,12 @@ void MkBuilder::prep_simtracks()
       // Apply MTV selection criteria and then return                                                                                                                                                                     
       if (simtrack.prodType()!=Track::ProdType::Signal || simtrack.charge()==0 || simtrack.posR()>3.5 || std::abs(simtrack.z())>30 || std::abs(simtrack.momEta())>2.5) simtrack.setNotFindable();
       else if(Config::mtvRequireSeeds && !isSimSeed) simtrack.setNotFindable();
-      else if(Config::saveSameCharge  && simtrack.matchToCMSSW() && !simtrack.sameChargeCMSSW()) simtrack.setNotFindable();
-      else if(!Config::saveSameCharge && simtrack.matchToCMSSW() && simtrack.sameChargeCMSSW())  simtrack.setNotFindable();
+      else if(Config::saveSameCharge  && !simtrack.sameChargeSeed()) simtrack.setNotFindable(); 
+      else if(!Config::saveSameCharge && simtrack.sameChargeSeed())  simtrack.setNotFindable();
+      //      else if(!simtrack.matchToCMSSW())  simtrack.setNotFindable();
+      //else if(Config::saveSameCharge  && simtrack.matchToCMSSW() && !simtrack.sameChargeCMSSW()) simtrack.setNotFindable();
+      //else if(!Config::saveSameCharge && simtrack.matchToCMSSW() && simtrack.sameChargeCMSSW())  simtrack.setNotFindable();
+      
     }
     else{
       // set findability based on bool isSimSeed                                                                                                                                                                         

@@ -234,9 +234,10 @@ public:
 	//For study of charge effectiveness
 	bool matchToCMSSW : 1;
 	bool sameChargeCMSSW : 1;
+	bool sameChargeSeed : 1;
 
         // The remaining bits.
-        unsigned int _free_bits_ : 23;
+        unsigned int _free_bits_ : 22;
 
       };
 
@@ -265,6 +266,9 @@ public:
   void setSameChargeCMSSW(bool d){status_.sameChargeCMSSW = d;}
   bool matchToCMSSW() const{return status_.matchToCMSSW;}
   bool sameChargeCMSSW() const{return status_.sameChargeCMSSW;}
+
+  void setSameChargeSeed(bool d){status_.sameChargeSeed = d;}
+  bool sameChargeSeed() const{return status_.sameChargeSeed;}
 
   void setDuplicateValue(bool d) {status_.duplicate = d;}
   bool getDuplicateValue() const {return status_.duplicate;}
