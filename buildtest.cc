@@ -27,7 +27,7 @@ namespace mkfit {
 // not needed if we only parallelize over seeds.
 //typedef tbb::concurrent_vector<cand_t> candvec;
 typedef std::vector<cand_t> candvec;
-static std::mutex evtlock;
+  //static std::mutex evtlock;
 } // end namespace mkfit
 #endif
 namespace mkfit {
@@ -58,9 +58,9 @@ void processCandidates(const BinInfoMap & segmentMap, Event& ev, candvec& candid
       // the empty new candidate list; seed will be skipped on future iterations
       //auto best = std::min_element(candidates.begin(),candidates.end(),sortByHitsChi2);
       auto best = std::min_element(candidates.begin(),candidates.end(),sortByScoreCand);
-#ifdef TBB
+      /*#ifdef TBB
       std::lock_guard<std::mutex> evtguard(evtlock); // should be rare
-#endif
+      #endif*/
       best->setLabel(evt_track_candidates.size());
       dprint("no more candidates, saving track from seed " << seedID << " label " << best->label() << " hits " 
                                        << best->nFoundHits() << " parameters " << best->parameters() << std::endl);

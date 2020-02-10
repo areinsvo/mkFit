@@ -156,6 +156,14 @@ public:
 
   void quality_val();
   void quality_reset();
+  int  get_m_cnt(){ return m_cnt;}
+  int  get_m_cnt1(){ return m_cnt1;}
+  int get_m_cnt2(){ return m_cnt2;}
+  int get_m_cnt8(){ return m_cnt_8;}
+  int get_m_cnt18(){ return m_cnt1_8;}
+  int get_m_cnt28(){ return m_cnt2_8;}
+  int get_m_cnt_nomc(){ return m_cnt_nomc;}
+
   void quality_process(Track& tkcand, const int itrack, std::map<int,int> & cmsswLabelToPos);
   void quality_print();
   void track_print(Track &t, const char* pref);

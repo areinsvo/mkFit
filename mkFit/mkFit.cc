@@ -342,9 +342,14 @@ void test_standard()
     std::cout << "Total best hit time (GPU): " << total_best_hit_time << std::endl;
   }
 #else
-  std::atomic<int> nevt{g_start_event};
-  std::atomic<int> seedstot{0}, simtrackstot{0}, candstot{0};
-  std::atomic<int> maxHits_all{0}, maxLayer_all{0};
+  //  std::atomic<int> nevt{g_start_event};
+  //  std::atomic<int> seedstot{0}, simtrackstot{0}, candstot{0};
+  //  std::atomic<int> maxHits_all{0}, maxLayer_all{0};
+
+  int nevt{g_start_event};                                                                                                  
+  int seedstot{0}, simtrackstot{0}, candstot{0};
+  int maxHits_all{0}, maxLayer_all{0}; 
+  int m_cnt=0, m_cnt1=0, m_cnt2=0, m_cnt_8=0, m_cnt1_8=0, m_cnt2_8=0, m_cnt_nomc=0;
 
   MkBuilder::populate(g_run_build_all || g_run_build_fv);
 
@@ -397,6 +402,7 @@ void test_standard()
   //tbb::parallel_for(tbb::blocked_range<int>(0, Config::numThreadsEvents, 1),
   //  [&](const tbb::blocked_range<int>& threads)
   //{
+  //Extends to line 515
 #pragma omp parallel for 
   for(int thisthread = 0; thisthread< Config::numThreadsEvents; thisthread++)
     {
@@ -425,13 +431,21 @@ void test_standard()
     //This loop is not parallelized, but is run sequentially for each of the numThreadsEvents threads
     for (int evt = evstart; evt < evend; ++evt)
     {
+      /*#pragma omp critical
+      {
       ev.Reset(nevt++);
+      }*/
+
+      int current_evt;
+      #pragma omp atomic capture
+      current_evt = nevt++;
+      ev.Reset(current_evt);
 
       if (!Config::silent)
       {
-        std::lock_guard<std::mutex> printlock(Event::printmutex);
-        printf("\n");
-        printf("Processing event %d\n", ev.evtID());
+        //std::lock_guard<std::mutex> printlock(Event::printmutex);
+        dprintf("\n");
+        dprintf("Processing event %d\n", ev.evtID());
       }
 
       if (g_operation == "read")
@@ -449,7 +463,10 @@ void test_standard()
       plex_tracks.resize(ev.simTracks_.size());
 
       double t_best[NT] = {0}, t_cur[NT];
+      #pragma omp atomic
       simtrackstot += ev.simTracks_.size();
+
+      #pragma omp atomic
       seedstot     += ev.seedTracks_.size();
 
       int ncands_thisthread = 0;
@@ -479,26 +496,33 @@ void test_standard()
         for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 
         if (!Config::silent) {
-          std::lock_guard<std::mutex> printlock(Event::printmutex);
+          //std::lock_guard<std::mutex> printlock(Event::printmutex);
           if (Config::finderReportBestOutOfN > 1)
           {
-            printf("----------------------------------------------------------------\n");
-            printf("Best-of-times:");
-            for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
-            printf("\n");
+            dprintf("----------------------------------------------------------------\n");
+            dprintf("Best-of-times:");
+            for (int i = 0; i < NT; ++i) dprintf("  %.5f/%.5f", t_cur[i], t_best[i]);
+            dprintf("\n");
           }
-          printf("----------------------------------------------------------------\n");
+          dprintf("----------------------------------------------------------------\n");
         }
-      }
+      } //end of finderReportsBestOutOfN
 
+      #pragma omp atomic
       candstot += ncands_thisthread;
-      if (maxHits_thisthread > maxHits_all){
-        maxHits_all = maxHits_thisthread;
+      
+      int local_maxHits_all;
+      #pragma omp atomic read
+      local_maxHits_all = maxHits_all;
+      if (maxHits_thisthread > local_maxHits_all){
+	#pragma omp atomic write
+	maxHits_all = maxHits_thisthread;
+        #pragma omp atomic write
         maxLayer_all = maxLayer_thisthread;
       }
       if (!Config::silent) {
-        std::lock_guard<std::mutex> printlock(Event::printmutex);
-        printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
+        //std::lock_guard<std::mutex> printlock(Event::printmutex);
+        dprintf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
                t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
       }
 
@@ -509,9 +533,22 @@ void test_standard()
         for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
         if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
       }
-    }
-    mkb.quality_print();
-    }
+    } //End of loop over events for this thread
+    #pragma omp atomic
+    m_cnt += mkb.get_m_cnt();
+    #pragma omp atomic
+    m_cnt_nomc += mkb.get_m_cnt_nomc();
+    #pragma omp atomic
+    m_cnt1 += mkb.get_m_cnt1();
+    #pragma omp atomic
+    m_cnt2 += mkb.get_m_cnt2();
+    #pragma omp atomic
+    m_cnt_8 += mkb.get_m_cnt8();
+    #pragma omp atomic
+    m_cnt1_8 += mkb.get_m_cnt18();
+    #pragma omp atomic
+    m_cnt2_8 += mkb.get_m_cnt28();
+    } //End of parallel loop over MEIF threads
   //  }, tbb::simple_partitioner()); //end of tbb parallel for
 
 #endif
@@ -522,12 +559,19 @@ void test_standard()
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
+  printf("++++++++++++++++++++++++++++++++++++++++++++\n");
+  printf("Number of associated tracks = %d, and non associated tracks = %d \n",m_cnt, m_cnt_nomc);
+  printf("Of the associated tracks, %d  have pt within 10 percent and %d have pt within 20 percent \n",m_cnt1,m_cnt2);
+  printf("Of the associated tracks, %d have the same number of hits within 80 percent. Of those, %d have pt within 10 percent and %d have pt within 20 percent \n", m_cnt_8,m_cnt1_8,m_cnt2_8);
+  printf("++++++++++++++++++++++++++++++++++++++++++++\n");
+
+
   printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
          t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
   printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
          t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
   printf("Total event loop time %.5f simtracks %d seedtracks %d builtcands %d maxhits %d on lay %d\n", time, 
-         simtrackstot.load(), seedstot.load(), candstot.load(), maxHits_all.load(), maxLayer_all.load());
+         simtrackstot, seedstot, candstot, maxHits_all, maxLayer_all);
   //fflush(stdout);
 
   if (g_operation == "read")

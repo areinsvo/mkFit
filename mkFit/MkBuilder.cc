@@ -972,8 +972,8 @@ void MkBuilder::quality_store_tracks(TrackVec& tracks)
   }
 
   if (!Config::silent && (chi2_500_cnt > 0 || chi2_nan_cnt > 0)) {
-    std::lock_guard<std::mutex> printlock(Event::printmutex);
-    printf("MkBuilder::quality_store_tracks bad track chi2 (backward fit?). is-nan=%d, gt-500=%d.\n", chi2_nan_cnt, chi2_500_cnt);
+    //    std::lock_guard<std::mutex> printlock(Event::printmutex);
+    dprintf("MkBuilder::quality_store_tracks bad track chi2 (backward fit?). is-nan=%d, gt-500=%d.\n", chi2_nan_cnt, chi2_500_cnt);
   }
 }
 
