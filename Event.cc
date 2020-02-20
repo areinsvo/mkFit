@@ -811,7 +811,6 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
 int Event::clean_cms_seedtracks()
 {
 
-  const int minNHits     = Config::minNHits_seedclean;
   const float etamax_brl = Config::c_etamax_brl;
   const float dpt_brl_0  = Config::c_dpt_brl_0;
   const float dpt_ec_0   = Config::c_dpt_ec_0;
@@ -874,7 +873,6 @@ int Event::clean_cms_seedtracks()
   for(int ts=0; ts<ns; ts++){
 
     if (not writetrack[ts]) continue;//FIXME: this speed up prevents transitive masking; check build cost!
-    if (nHits[ts] < minNHits) continue;
 
     const float oldPhi1 = oldPhi[ts];
     const float pos2_first = pos2[ts];
@@ -884,8 +882,6 @@ int Event::clean_cms_seedtracks()
 
     //#pragma simd /* Vectorization via simd had issues with icc */
     for (int tss= ts+1; tss<ns; tss++){
-
-      if (nHits[tss] < minNHits) continue;
 
       const float Pt2 = pt[tss];
 
