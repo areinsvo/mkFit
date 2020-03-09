@@ -169,7 +169,7 @@ void StackValidation::MakeRatioStacks(const TString & trk)
 void StackValidation::MakeKinematicDiffStacks(const TString & trk)
 {
   // variables to plot
-  std::vector<TString> diffs = {"nHits","invpt","eta","phi"};
+  std::vector<TString> diffs = {"nHits","invpt","eta","phi","nLayers"};
   const UInt_t ndiffs = diffs.size();
   
   // diffferent reco collections

@@ -341,12 +341,12 @@ void PlotValidation::PlotFRTree()
   const DblVecVec trkqualbins = {fNHitsBins,fFracHitsBins,fScoreBins};
 
   // diffs
-  const TStrVec dvars  = {"dnHits","dinvpt","deta","dphi"};
-  const TStrVec sdvars = {"nHits","1/p_{T}","#eta","#phi"};
+  const TStrVec dvars  = {"dnHits","dinvpt","deta","dphi","dnLayers"};
+  const TStrVec sdvars = {"nHits","1/p_{T}","#eta","#phi","nLayers"};
   const UInt_t  ndvars = dvars.size();
 
   // get bins ready
-  const DblVecVec dvarbins = {fDNHitsBins,fDInvPtBins,fDEtaBins,fDPhiBins};
+  const DblVecVec dvarbins = {fDNHitsBins,fDInvPtBins,fDEtaBins,fDPhiBins,fDNHitsBins};
 
   //////////////////////////
   // Create and new plots //
@@ -485,6 +485,8 @@ void PlotValidation::PlotFRTree()
   TBrRefVec score_trks_br   (fNTrks); // branch per track
 
   // Initialize diff branches
+  FltVec    nLayers_trks       (fNTrks); // num unique layers / reco track 
+  TBrRefVec nLayers_trks_br    (fNTrks);
   FltVec    nLayers_ref_trks   (fNTrks); // sim/cmssw nUnique layers
   TBrRefVec nLayers_ref_trks_br(fNTrks); 
   FltVec    pt_ref_trks        (fNTrks); // sim/cmssw pt
@@ -508,6 +510,8 @@ void PlotValidation::PlotFRTree()
     auto & fracHits_trk_br    = fracHits_trks_br   [j];
     auto & score_trk          = score_trks         [j];
     auto & score_trk_br       = score_trks_br      [j];
+    auto & nLayers_trk        = nLayers_trks       [j];
+    auto & nLayers_trk_br     = nLayers_trks_br    [j];
     auto & nLayers_ref_trk    = nLayers_ref_trks   [j];
     auto & nLayers_ref_trk_br = nLayers_ref_trks_br[j];
     auto & pt_ref_trk         = pt_ref_trks        [j];
@@ -532,6 +536,8 @@ void PlotValidation::PlotFRTree()
     score_trk_br    = 0;
 
     // initialize diff branches
+    nLayers_trk        = 0;
+    nLayers_trk_br     = 0;
     nLayers_ref_trk    = 0;
     nLayers_ref_trk_br = 0;
     pt_ref_trk         = 0.f;
@@ -548,6 +554,8 @@ void PlotValidation::PlotFRTree()
     frtree->SetBranchAddress("nHits_"+trk,&nHits_trk,&nHits_trk_br);
     frtree->SetBranchAddress("fracHitsMatched_"+trk,&fracHits_trk,&fracHits_trk_br);
     frtree->SetBranchAddress("score_"+trk,&score_trk,&score_trk_br);
+
+    frtree->SetBranchAddress("nLayers_"+trk,&nLayers_trk,&nLayers_trk_br);
 
     frtree->SetBranchAddress("nLayers_"+fSRefVarTrk+"_"+trk,&nLayers_ref_trk,&nLayers_ref_trk_br);
     frtree->SetBranchAddress("pt_"+fSRefVarTrk+"_"+trk,&pt_ref_trk,&pt_ref_trk_br);
@@ -581,6 +589,7 @@ void PlotValidation::PlotFRTree()
       auto & nHits_trk_br       = nHits_trks_br      [j];
       auto & fracHits_trk_br    = fracHits_trks_br   [j];
       auto & score_trk_br       = score_trks_br      [j];
+      auto & nLayers_trk_br     = nLayers_trks_br    [j];
       auto & nLayers_ref_trk_br = nLayers_ref_trks_br[j];
       auto & pt_ref_trk_br      = pt_ref_trks_br     [j];
       auto & eta_ref_trk_br     = eta_ref_trks_br    [j];
@@ -593,6 +602,7 @@ void PlotValidation::PlotFRTree()
       fracHits_trk_br->GetEntry(e);
       score_trk_br   ->GetEntry(e);
 
+      nLayers_trk_br->GetEntry(e);
       nLayers_ref_trk_br->GetEntry(e);
       pt_ref_trk_br     ->GetEntry(e);
       eta_ref_trk_br    ->GetEntry(e);
@@ -612,6 +622,7 @@ void PlotValidation::PlotFRTree()
       const auto fracHits_trk    = fracHits_trks   [j];
       const auto score_trk       = score_trks      [j];
 
+      const auto nLayers_trk     = nLayers_trks    [j];
       const auto nLayers_ref_trk = nLayers_ref_trks[j];
       const auto pt_ref_trk      = pt_ref_trks     [j];
       const auto eta_ref_trk     = eta_ref_trks    [j];
@@ -647,6 +658,7 @@ void PlotValidation::PlotFRTree()
 	const TString dinvptkey = Form("%s_d_1",basekey.Data());
 	const TString detakey   = Form("%s_d_2",basekey.Data());
 	const TString dphikey   = Form("%s_d_3",basekey.Data());
+        const TString dnlaykey  = Form("%s_d_4",basekey.Data());
 
 	// all reco
 	hists[Form("%s_0",nhitkey.Data())]->Fill(nHits_trk);
@@ -669,6 +681,7 @@ void PlotValidation::PlotFRTree()
 	  hists[Form("%s_2",dinvptkey.Data())]->Fill(1.f/pt_trk-1.f/pt_ref_trk);
 	  hists[Form("%s_2",detakey  .Data())]->Fill(eta_trk-eta_ref_trk);
 	  hists[Form("%s_2",dphikey  .Data())]->Fill(dphi_trk);
+          hists[Form("%s_2",dnlaykey .Data())]->Fill(nLayers_trk-(Int_t)nLayers_ref_trk);
 
 	  if (iTkMatches_trk == 0) // best matches only
 	  {
@@ -680,6 +693,7 @@ void PlotValidation::PlotFRTree()
 	    hists[Form("%s_3",dinvptkey.Data())]->Fill(1.f/pt_trk-1.f/pt_ref_trk);
 	    hists[Form("%s_3",detakey  .Data())]->Fill(eta_trk-eta_ref_trk);
 	    hists[Form("%s_3",dphikey  .Data())]->Fill(dphi_trk);
+            hists[Form("%s_3",dnlaykey .Data())]->Fill((Int_t)nLayers_trk-(Int_t)nLayers_ref_trk);
 	  } // end check over best matches
 	} // end check over all matches
       } // end loop over pt cuts
@@ -1019,7 +1033,7 @@ void PlotValidation::SetupBins()
   PlotValidation::SetupVariableBins("0 0.25 0.5 0.75 1 1.25 1.5 1.75 2 2.5 3 3.5 4 4.5 5 5 6 7 8 9 10 15 20 25 30 40 50 100 200 500 1000",fPtBins);
   
   // eta bins
-  PlotValidation::SetupFixedBins(60,-3,3,fEtaBins);
+  PlotValidation::SetupFixedBins(30,-3,3,fEtaBins);
 
   // phi bins
   PlotValidation::SetupFixedBins(70,-3.5,3.5,fPhiBins);

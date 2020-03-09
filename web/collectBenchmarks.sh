@@ -126,7 +126,7 @@ done
 # Move kinematic diff plots for SimTrack Validation
 for coll in bestmatch allmatch
 do 
-    for var in nHits invpt phi eta
+    for var in nHits invpt phi eta nLayers
     do
 	for pt in 0p0 0p9 2p0
 	do
