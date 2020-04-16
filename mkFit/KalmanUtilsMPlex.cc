@@ -470,7 +470,7 @@ void kalmanUpdate(const MPlexLS &psErr,  const MPlexLV& psPar,
 
 void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                               const MPlexHS &msErr,  const MPlexHV& msPar,
-                                    MPlexLS &outErr,       MPlexLV& outPar,
+			            MPlexLS &outErr,       MPlexLV& outPar,      MPlexQI &outChg,
                               const int      N_proc, const PropagationFlags propFlags)
 {
   if (Config::finding_requires_propagation_to_hit_pos)
@@ -493,6 +493,18 @@ void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, const
   {
     kalmanOperation(KFO_Update_Params, psErr, psPar, msErr, msPar,
                     outErr, outPar, dummy_chi2, N_proc);
+  }
+  for (int n = 0; n < NN; ++n)
+  {
+    if (outPar.At(n,3,0) >= 0)
+    {
+      outChg.At(n, 0, 0) = inChg.ConstAt(n, 0, 0);
+    }
+    else
+    {
+      outChg.At(n, 0, 0) = -1.0*inChg.ConstAt(n, 0, 0);
+      outPar.At(n,3,0) = std::abs(outPar.At(n,3,0));
+    }
   }
 }
 
@@ -688,7 +700,7 @@ void kalmanUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar,
 
 void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                                     const MPlexHS &msErr,  const MPlexHV& msPar,
-                                          MPlexLS &outErr,       MPlexLV& outPar,
+				          MPlexLS &outErr,       MPlexLV& outPar,      MPlexQI &outChg,
                                     const int      N_proc, const PropagationFlags propFlags)
 {
   if (Config::finding_requires_propagation_to_hit_pos)
@@ -712,6 +724,18 @@ void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar,
     kalmanOperationEndcap(KFO_Update_Params, psErr, psPar, msErr, msPar,
                           outErr, outPar, dummy_chi2, N_proc);
   }
+  for (int n = 0; n < NN; ++n)
+    {
+      if (outPar.At(n,3,0) >= 0)
+	{
+	  outChg.At(n, 0, 0) = inChg.ConstAt(n, 0, 0);
+	}
+      else
+	{
+	  outChg.At(n, 0, 0) = -1.0*inChg.ConstAt(n, 0, 0);
+	  outPar.At(n,3,0) = std::abs(outPar.At(n,3,0));
+	}
+    }
 }
 
 //------------------------------------------------------------------------------

@@ -94,7 +94,8 @@ public:
     }
     msPar.SetVal(0.0f);
     Chi2.SetVal(0.0f);
-    Chg.SetVal(0);
+    Chg[0].SetVal(0);
+    Chg[1].SetVal(0);
     Par[0].SetVal(0.0f);
     Par[1].SetVal(0.0f);
   }
@@ -148,7 +149,7 @@ private:
     Err[tslot].CopyIn(mslot, trk.errors().Array());
     Par[tslot].CopyIn(mslot, trk.parameters().Array());
 
-    Chg  (mslot, 0, 0) = trk.charge();
+    Chg[tslot](mslot, 0, 0) = trk.charge();
     Chi2 (mslot, 0, 0) = trk.chi2();
     Label(mslot, 0, 0) = trk.label();
 
@@ -162,7 +163,7 @@ private:
     Err[tslot].CopyOut(mslot, trk.errors_nc().Array());
     Par[tslot].CopyOut(mslot, trk.parameters_nc().Array());
 
-    trk.setCharge(Chg  (mslot, 0, 0));
+    trk.setCharge(Chg[tslot](mslot, 0, 0));
     trk.setChi2  (Chi2 (mslot, 0, 0));
     trk.setLabel (Label(mslot, 0, 0));
 

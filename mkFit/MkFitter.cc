@@ -85,7 +85,7 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
     Err[iC].CopyIn(itrack, trk.errors().Array());
     Par[iC].CopyIn(itrack, trk.parameters().Array());
 
-    Chg(itrack, 0, 0)   = trk.charge();
+    Chg[iC](itrack, 0, 0)   = trk.charge();
     Chi2(itrack, 0, 0)  = trk.chi2();
     Label(itrack, 0, 0) = trk.label();
 
@@ -138,7 +138,7 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
     Err[iC].CopyIn(itrack, trk.errors().Array());
     Par[iC].CopyIn(itrack, trk.parameters().Array());
 
-    Chg(itrack, 0, 0) = trk.charge();
+    Chg[iC](itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
 
 // CopyIn seems fast enough, but indirections are quite slow.
@@ -190,7 +190,7 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
 
     mtp.AddInput(trk);
 
-    Chg(itrack, 0, 0) = trk.charge();
+    Chg[iC](itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
   }
 
@@ -240,7 +240,7 @@ void MkFitter::InputTracksAndHitIdx(const std::vector<Track>& tracks,
     Err[iI].CopyIn(itrack, trk.errors().Array());
     Par[iI].CopyIn(itrack, trk.parameters().Array());
 
-    Chg (itrack, 0, 0)  = trk.charge();
+    Chg [iI](itrack, 0, 0)  = trk.charge();
     Chi2(itrack, 0, 0)  = trk.chi2();
     Label(itrack, 0, 0) = trk.label();
 
@@ -274,7 +274,7 @@ void MkFitter::InputTracksAndHitIdx(const std::vector<std::vector<Track> >& trac
     Err[iI].CopyIn(itrack, trk.errors().Array());
     Par[iI].CopyIn(itrack, trk.parameters().Array());
 
-    Chg (itrack, 0, 0) = trk.charge();
+    Chg[iI](itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
 
     for (int hi = 0; hi < Nhits; ++hi)
@@ -307,7 +307,7 @@ void MkFitter::InputSeedsTracksAndHits(const std::vector<Track>&  seeds,
     Err[iC].CopyIn(itrack, see.errors().Array());
     Par[iC].CopyIn(itrack, see.parameters().Array());
 
-    Chg(itrack, 0, 0) = see.charge();
+    Chg[iC](itrack, 0, 0) = see.charge();
     Chi2(itrack, 0, 0) = see.chi2();
 
     const Track &trk = tracks[see.label()];
@@ -357,7 +357,7 @@ void MkFitter::InputTracksForFit(const std::vector<Track>& tracks,
   {
     const Track &trk = tracks[i];
 
-    Chg(itrack, 0, 0)   = trk.charge();
+    Chg[iC](itrack, 0, 0)   = trk.charge();
     Chi2(itrack, 0, 0)  = trk.chi2();
     Label(itrack, 0, 0) = trk.label();
 
@@ -566,7 +566,7 @@ void MkFitter::OutputTracks(std::vector<Track>& tracks, int beg, int end, int iC
     Err[iCP].CopyOut(itrack, tracks[i].errors_nc().Array());
     Par[iCP].CopyOut(itrack, tracks[i].parameters_nc().Array());
     
-    tracks[i].setCharge(Chg(itrack, 0, 0));
+    tracks[i].setCharge(Chg[iCP](itrack, 0, 0));
     
     // XXXXX chi2 is not set (also not in SMatrix fit, it seems)
     tracks[i].setChi2(Chi2(itrack, 0, 0));
@@ -588,7 +588,7 @@ void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, 
     Err[iO].CopyOut(itrack, tracks[i].errors_nc().Array());
     Par[iO].CopyOut(itrack, tracks[i].parameters_nc().Array());
 
-    tracks[i].setCharge(Chg(itrack, 0, 0));
+    tracks[i].setCharge(Chg[iO](itrack, 0, 0));
     tracks[i].setChi2(Chi2(itrack, 0, 0));
     tracks[i].setLabel(Label(itrack, 0, 0));
 

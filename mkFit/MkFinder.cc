@@ -315,7 +315,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         float cosT = std::cos(Par[iI].ConstAt(itrack, 5, 0));
         float sinT = std::sin(Par[iI].ConstAt(itrack, 5, 0));
         //here alpha is the helix angular path corresponding to deltaZ
-        const float k = Chg.ConstAt(itrack, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+        const float k = Chg[iI].ConstAt(itrack, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
         const float alpha  = deltaZ*sinT*Par[iI].ConstAt(itrack, 3, 0)/(cosT*k);
         dphi += std::abs(alpha);
       }
@@ -463,7 +463,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
+    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg[iP], msErr, msPar,
                                    outChi2, N_proc, Config::finding_intra_layer_pflags);
 
     //update best hit in case chi2<minChi2
@@ -545,10 +545,8 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
   // are already done when computing chi2. Not sure it's worth caching them?)
 
   dprint("update parameters");
-  (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                 Err[iC], Par[iC], N_proc, Config::finding_intra_layer_pflags);
-
-  //std::cout << "Par[iP](0,0,0)=" << Par[iP](0,0,0) << " Par[iC](0,0,0)=" << Par[iC](0,0,0)<< std::endl;
+  (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg[iP], msErr, msPar,
+                                 Err[iC], Par[iC], Chg[iC], N_proc, Config::finding_intra_layer_pflags);
 }
 
 //==============================================================================
@@ -597,7 +595,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
+    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg[iP], msErr, msPar,
                                    outChi2, N_proc, Config::finding_intra_layer_pflags);
 
     // Now update the track parameters with this hit (note that some
@@ -623,8 +621,8 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 
     if (oneCandPassCut)
     {
-      (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                     Err[iC], Par[iC], N_proc, Config::finding_intra_layer_pflags);
+      (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg[iP], msErr, msPar,
+                                     Err[iC], Par[iC], Chg[iC], N_proc, Config::finding_intra_layer_pflags);
 
       dprint("update parameters" << std::endl
 	     << "propagated track parameters x=" << Par[iP].ConstAt(0, 0, 0) << " y=" << Par[iP].ConstAt(0, 1, 0) << std::endl
@@ -739,7 +737,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, outChi2, N_proc, Config::finding_intra_layer_pflags);
+    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg[iP], msErr, msPar, outChi2, N_proc, Config::finding_intra_layer_pflags);
 
 #pragma omp simd // DOES NOT VECTORIZE AS IT IS NOW
     for (int itrack = 0; itrack < N_proc; ++itrack)
@@ -822,8 +820,8 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
     msPar.CopyIn(i, hit.posArray());
   }
 
-  (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                 Err[iC], Par[iC], N_proc, Config::finding_intra_layer_pflags);
+  (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg[iP], msErr, msPar,
+                                 Err[iC], Par[iC], Chg[iC], N_proc, Config::finding_intra_layer_pflags);
 }
 
 
@@ -843,7 +841,7 @@ void MkFinder::CopyOutParErr(std::vector<CombCandidate>& seed_cand_vec,
     // Set the track state to the updated parameters
     Err[iO].CopyOut(i, cand.errors_nc().Array());
     Par[iO].CopyOut(i, cand.parameters_nc().Array());
-
+    cand.setCharge(Chg[iO](i,0,0));
     dprint((outputProp?"propagated":"updated") << " track parameters x=" << cand.parameters()[0]
               << " y=" << cand.parameters()[1]
               << " z=" << cand.parameters()[2]
@@ -870,7 +868,7 @@ void MkFinder::BkFitInputTracks(TrackVec& cands, int beg, int end)
   {
     const Track &trk = cands[i];
 
-    Chg(itrack, 0, 0) = trk.charge();
+    Chg[iC](itrack, 0, 0) = trk.charge();
     CurHit[itrack]    = trk.nTotalHits() - 1;
     HoTArr[itrack]    = trk.getHitsOnTrackArray();
 
@@ -903,7 +901,7 @@ void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
   {
     const Track &trk = eocss[i][0];
 
-    Chg(itrack, 0, 0) = trk.charge();
+    Chg[iC](itrack, 0, 0) = trk.charge();
     CurHit[itrack]    = trk.nTotalHits() - 1;
     HoTArr[itrack]    = trk.getHitsOnTrackArray();
 

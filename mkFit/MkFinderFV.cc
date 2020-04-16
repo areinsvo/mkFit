@@ -176,7 +176,7 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
         const float cosT = std::cos(Par[iI].ConstAt(itrack, 5, 0));
         const float sinT = std::sin(Par[iI].ConstAt(itrack, 5, 0));
         //here alpha is the helix angular path corresponding to deltaZ
-        const float k = Chg.ConstAt(itrack, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+        const float k = Chg[iI].ConstAt(itrack, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
         const float alpha  = deltaZ*sinT*Par[iI].ConstAt(itrack, 3, 0)/(cosT*k);
         dphi += std::abs(alpha);
       }
@@ -297,7 +297,7 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
     mhp.Pack(msErr, msPar);
 
     //now compute the chi2 of track state vs hit
-    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, XHitChi2[hit_cnt], NNFV, Config::finding_intra_layer_pflags);
+    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg[iP], msErr, msPar, XHitChi2[hit_cnt], NNFV, Config::finding_intra_layer_pflags);
 
   }//end loop over hits
 }
@@ -327,8 +327,8 @@ void MkFinderFV<nseeds, ncands>::UpdateWithLastHit(const LayerOfHits &layer_of_h
     }
   }
 
-  (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                 Err[iC], Par[iC], NNFV, Config::finding_intra_layer_pflags);
+  (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg[iP], msErr, msPar,
+                                 Err[iC], Par[iC], Chg[iC], NNFV, Config::finding_intra_layer_pflags);
 
   //now that we have moved propagation at the end of the sequence we lost the handle of
   //using the propagated parameters instead of the updated for the missing hit case.

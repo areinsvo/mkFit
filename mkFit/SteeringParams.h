@@ -17,7 +17,7 @@ class MkFinder;
 
 #define UPDATE_PARAM_ARGS const MPlexLS &,  const MPlexLV &, const MPlexQI &, \
                           const MPlexHS &,  const MPlexHV &, \
-                                MPlexLS &,        MPlexLV &, const int, const PropagationFlags
+                          MPlexLS &,        MPlexLV &,       MPlexQI &, const int, const PropagationFlags
 
 class FindingFoos
 {

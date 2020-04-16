@@ -17,7 +17,7 @@ public:
   MPlexLS    Err[2];
   MPlexLV    Par[2];
 
-  MPlexQI    Chg;
+  MPlexQI    Chg[2];
 
   static constexpr int iC = 0; // current
   static constexpr int iP = 1; // propagated
@@ -39,7 +39,7 @@ public:
       msRad.At(n, 0, 0) = r;
     }
 
-    propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msRad,
+    propagateHelixToRMPlex(Err[iC], Par[iC], Chg[iC], msRad,
                            Err[iP], Par[iP], N_proc, pf);
   }
 
@@ -52,7 +52,7 @@ public:
       msRad.At(n, 0, 0) = std::hypot(par.ConstAt(n, 0, 0), par.ConstAt(n, 1, 0));
     }
 
-    propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msRad,
+    propagateHelixToRMPlex(Err[iC], Par[iC], Chg[iC], msRad,
                            Err[iP], Par[iP], N_proc, pf);
   }
 
@@ -67,7 +67,7 @@ public:
       msZ.At(n, 0, 0) = z;
     }
 
-    propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msZ,
+    propagateHelixToZMPlex(Err[iC], Par[iC], Chg[iC], msZ,
                            Err[iP], Par[iP], N_proc, pf);
   }
 
@@ -80,7 +80,7 @@ public:
       msZ.At(n, 0, 0) = par.ConstAt(n, 2, 0);
     }
 
-    propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msZ,
+    propagateHelixToZMPlex(Err[iC], Par[iC], Chg[iC], msZ,
                            Err[iP], Par[iP], N_proc, pf);
   }
 
@@ -95,7 +95,7 @@ public:
       msZ.At(n, 0, 0) = (slope * (slope * Par[iC].ConstAt(n, 2, 0) - std::hypot(Par[iC].ConstAt(n, 0, 0), Par[iC].ConstAt(n, 1, 0)))) / (1 + slope * slope); // PCA to origin
     } 
 
-    propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msZ,
+    propagateHelixToZMPlex(Err[iC], Par[iC], Chg[iC], msZ,
                            Err[iP], Par[iP], N_proc, pf);
   }
 
