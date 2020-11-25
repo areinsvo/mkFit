@@ -1086,7 +1086,7 @@ int main(int argc, char *argv[])
 	err.At(0,2) = dummyErr;
 	err.At(1,2) = dummyErr;
 	Hit hit(pos, err, dummyIdx);
-	//	layerHits_[ilay].push_back(hit);
+	layerHits_[ilay].push_back(hit);
 	//	std::cout << "Dummy hit " << i << " added on layer " << ilay << ", " << x_ << ", " << y_ << ", " << z_val[i] << "(" << x_val[i] << ", " << y_val[i] << ", " << z_val[i] << ")"<< std::endl;
       }
     }
