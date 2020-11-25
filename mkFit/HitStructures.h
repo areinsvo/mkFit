@@ -418,7 +418,10 @@ inline void TrackCand::addHitIdx(int hitIdx, int hitLyr, float chi2)
     ++nFoundHits_; chi2_+=chi2;
     nInsideMinusOneHits_ += nTailMinusOneHits_;
     nTailMinusOneHits_    = 0;
-  } else {
+  }
+  //ARH: Don't update found hits or minus one hits for -7 hits. The " " printout is just to make sure this code was run
+  else if (hitIdx == -7) std::cout << " ";  
+  else{
     ++nMissingHits_;
     if (hitIdx == -1) ++nTailMinusOneHits_;
   }

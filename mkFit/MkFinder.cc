@@ -329,6 +329,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   //#pragma omp simd
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
+    //ARH: initializing this to false has no effect:    XWsrResult[itrack].m_in_gap = false;
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
       XHitSize[itrack] = -1;
@@ -391,10 +392,19 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
             // Avi says we should have *minimal* search windows per layer.
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
-	    XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+	    if(L.GetHit(hi).mcHitID() == -7)
+	    {
+	      XWsrResult[itrack].m_in_gap = true; 
+	    }
+	    else
+	    { 
+	      XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+	    }
 	  }
 	  else
 	  {
+	    //ARH: This doesn't print anything, as expected
+	    //std::cout << "This shouldnt happen" << std::endl;
 	    // MT: The following check alone makes more sense with spiral traversal,
 	    // we'd be taking in closest hits first.
 	    if (XHitSize[itrack] < MPlexHitIdxMax)
@@ -589,6 +599,9 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
     {
       if (hit_cnt < XHitSize[itrack])
       {
+	//ARH: Doesn't print anything; no hits with mcHitID < 0; 
+	//  if (layer_of_hits.GetHit( XHitArr.At(itrack, hit_cnt, 0) ).mcHitID() < 0 ) std::cout << "Something is wrong" << std::endl;
+	//  But we do get printouts here for mcHitID >= 0
         mhp.AddInputAt(itrack, layer_of_hits.GetHit( XHitArr.At(itrack, hit_cnt, 0) ));
       }
     }
@@ -646,6 +659,8 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
             // QQQ only instantiate if it will pass, be better than N_best
 	    TrackCand newcand;
             copy_out(newcand, itrack, iC);
+	    //ARH: checking again for mcHitID < 0 gives no output
+	    //  if (layer_of_hits.GetHit( XHitArr.At(itrack, hit_cnt, 0) ).mcHitID() < 0 ) std::cout << "Something is wrong" << std::endl;
 	    newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), layer_of_hits.layer_id(), chi2);
 	    newcand.setSeedTypeForRanking(SeedType(itrack, 0, 0));
 	    newcand.setScore(getScoreCand(newcand));
@@ -679,6 +694,12 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
       // YYYYYY Config::store_missed_layers
       fake_hit_idx = -3;
     }
+
+    //now add fake hit for tracks that passsed through inactive modules
+    if (XWsrResult[itrack].m_in_gap)
+      {
+      fake_hit_idx = -7;
+      }
 
     dprint("ADD FAKE HIT FOR TRACK #" << itrack << " withinBounds=" << (fake_hit_idx != -3) << " r=" << std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0)));
 
