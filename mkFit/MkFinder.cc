@@ -394,6 +394,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
             // checks, see above.
 	    if(L.GetHit(hi).mcHitID() == -7)
 	    {
+	      //ARH	      
+	      std::cout<<"";
 	      XWsrResult[itrack].m_in_gap = true; 
 	    }
 	    else
@@ -665,6 +667,9 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 	    newcand.setSeedTypeForRanking(SeedType(itrack, 0, 0));
 	    newcand.setScore(getScoreCand(newcand));
 
+	    //	    std::cout << SeedIdx(itrack, 0, 0)  << " " << layer_of_hits.GetHit( XHitArr.At(itrack, hit_cnt, 0) ).mcHitID() << " " << layer_of_hits.layer_id() << " " << getScoreCand(newcand) << " " << newcand.nFoundHits() << " " << newcand.nInsideMinusOneHits()<< " " << chi2 <<  " " << newcand.chi2() << " "  << newcand.pT() << " " << newcand.getSeedTypeForRanking() << std::endl;
+	    //std::cout << "Adding hit " << XHitArr.At(itrack, hit_cnt, 0) << " to track " << itrack << " or " << iC << " on layer " << layer_of_hits.layer_id() << " with mcID() " << layer_of_hits.GetHit( XHitArr.At(itrack, hit_cnt, 0) ).mcHitID() << " leading to a track score of " << getScoreCand(newcand) << std::endl;
+
 	    dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << " z=" << newcand.parameters()[2] << " pt=" << 1./newcand.parameters()[3]);
 
 	    tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
@@ -696,9 +701,9 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
     }
 
     //now add fake hit for tracks that passsed through inactive modules
-    if (XWsrResult[itrack].m_in_gap)
+    if (XWsrResult[itrack].m_in_gap == true)
       {
-      fake_hit_idx = -7;
+	fake_hit_idx = -7;
       }
 
     dprint("ADD FAKE HIT FOR TRACK #" << itrack << " withinBounds=" << (fake_hit_idx != -3) << " r=" << std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0)));
